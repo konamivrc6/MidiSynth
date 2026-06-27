@@ -4,6 +4,7 @@
  */
 
 #include <Arduino.h>
+#include "src/config.h"
 
 /*
  * 预设结构 (定义于 config.cpp):

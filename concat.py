@@ -1,5 +1,5 @@
 """
-将 MidiSynth 的各 .cpp 文件按正确顺序拼接为一个 .cpp 文件。
+将 MidiSynth 的各 .inc 源文件按正确顺序拼接为一个 .cpp 文件。
 拼接后的文件与 MidiSynth.ino 放在同一 Arduino 工程目录下即可编译。
 
 用法:
@@ -12,16 +12,17 @@ import sys
 import argparse
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SRC_DIR    = os.path.join(SCRIPT_DIR, "src")   # 源文件目录
 OUT_DIR    = SCRIPT_DIR                        # 输出到项目根目录
 
-# 拼接顺序 — config.cpp 必须最先 (定义所有类型、常量)
+# 拼接顺序 — config.inc 必须最先 (定义所有类型、常量)
+# 路径相对于项目根目录 (SCRIPT_DIR)
 ORDER = [
-    "config.cpp",
-    "mcp23017.cpp",
-    "presets.cpp",
-    "audio_engine.cpp",
-    "usb_midi.cpp",
+    "src/config.inc",
+    "src/mcp23017.inc",
+    "src/presets.inc",
+    "wavetables/wavetables.inc",
+    "src/audio_engine.inc",
+    "src/usb_midi.inc",
 ]
 
 HEADER = """/*
@@ -32,7 +33,7 @@ HEADER = """/*
  *
  * 将此文件与 MidiSynth.ino 放在同一 Arduino 工程目录下。
  */
-""".format("  ".join(ORDER))
+""".format("  ".join(os.path.basename(n) for n in ORDER))
 
 SEP = """
 
@@ -90,12 +91,13 @@ def main():
 
     # 读取所有源文件
     files_lines = []
-    for name in ORDER:
-        path = os.path.join(SRC_DIR, name)
-        if not os.path.isfile(path):
-            print(f"[错误] 找不到文件: {path}")
+    for rel_path in ORDER:
+        full_path = os.path.join(SCRIPT_DIR, rel_path)
+        if not os.path.isfile(full_path):
+            print(f"[错误] 找不到文件: {full_path}")
             sys.exit(1)
-        files_lines.append((name, read_file(path)))
+        display = os.path.basename(rel_path)
+        files_lines.append((display, read_file(full_path)))
 
     # 去重
     files_lines = list(dedup_includes(files_lines))

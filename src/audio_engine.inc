@@ -1,6 +1,7 @@
 /*
  * audio_engine.cpp — 音频引擎核心
- * 波形生成、包络处理、滤波器、Voice 管理、音频缓冲输出
+ * 包络处理、滤波器、Voice 管理、音频缓冲输出
+ * 波形生成使用抗混叠分层波表查表 (wavetables/)
  */
 
 #include <Arduino.h>
@@ -9,6 +10,8 @@
 #include <freertos/task.h>
 #include "driver/i2s.h"
 #include "esp_timer.h"
+#include "src/config.h"
+#include "wavetables/wavetables.h"
 
 // ---------- 全局变量定义 ----------
 QueueHandle_t midiQueue  = nullptr;
@@ -57,31 +60,13 @@ static inline void updateEnvelope(Envelope &env) {
     // ENV_SUSTAIN: 保持当前 level 不变
 }
 
-// ---------- 波形生成 ----------
+// ---------- 波形生成 (分层波表查表，抗混叠) ----------
 static inline float generateWaveform(OscVoice &osc) {
     float delta = osc.baseFreq / SAMPLE_RATE;
     osc.phase += delta;
     if (osc.phase >= 1.0f) osc.phase -= 1.0f;
-    if (osc.phase < 0.0f)  osc.phase += 1.0f;  // 安全: 处理负频率
-
-    switch (osc.waveform) {
-        case WAVE_SINE: {
-            float s = sinf(osc.phase * 2.0f * M_PI);
-            return s;
-        }
-        case WAVE_TRI:
-            return 1.0f - 4.0f * fabsf(osc.phase - 0.5f);
-        case WAVE_PULSE_1_8:
-            return (osc.phase < 0.125f) ? 1.0f : -1.0f;
-        case WAVE_PULSE_1_4:
-            return (osc.phase < 0.25f) ? 1.0f : -1.0f;
-        case WAVE_PULSE_1_2:
-            return (osc.phase < 0.5f) ? 1.0f : -1.0f;
-        case WAVE_SAW:
-            return 2.0f * osc.phase - 1.0f;
-        default:
-            return 0.0f;
-    }
+    if (osc.phase < 0.0f)  osc.phase += 1.0f;
+    return lookupWavetable(osc.waveform, osc.phase, osc.wavetableLayer);
 }
 
 // ---------- 滤波器 ----------
@@ -113,6 +98,12 @@ static void initOscVoice(OscVoice &osc, const OscParams &params, float baseFreq,
     osc.filt2_intensity = f2i;
     osc.phase        = 0.0f;
     osc.baseFreq     = baseFreq * params.pitchMul;
+    // 分层波表: 由有效频率决定层级 (含 pitchMul 偏移)
+    float effFreq = osc.baseFreq;
+    float layer = log2f(effFreq * WAVETABLE_SIZE / SAMPLE_RATE);
+    if (layer < 0.0f) layer = 0.0f;
+    if (layer > NUM_TABLE_LAYERS - 1) layer = (float)(NUM_TABLE_LAYERS - 1);
+    osc.wavetableLayer = layer;
     osc.lp1_state    = 0.0f;
     osc.lp2_state    = 0.0f;
 
@@ -363,6 +354,9 @@ void audio_task(void *param) {
         vTaskDelete(NULL);
         return;
     }
+
+    // 初始化波表音符→层级映射
+    initNoteToLayer();
 
     // 加载默认预设
     loadPreset(0);

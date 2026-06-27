@@ -5,6 +5,7 @@
 
 #include <Arduino.h>
 #include <Wire.h>
+#include "src/config.h"
 
 /*
  * 初始化 MCP23017:
