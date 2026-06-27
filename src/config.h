@@ -1,18 +1,17 @@
 /*
- * config.cpp — 全局数据结构、常量、引脚定义、全局变量
- * 此文件应在拼接所有 .cpp 时置于最前面
- * MidiSynth for ESP32-S3 N16R8
+ * config.h — 全局类型定义、常量、外部声明
+ * 所有 .cpp 文件独立编译时均需包含此头文件。
  */
+
+#ifndef CONFIG_H
+#define CONFIG_H
 
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
 #include "driver/i2s.h"
-#include "esp_timer.h"
-
-// 本板 Serial=USB CDC, Serial0=CP2102 UART
-#define Serial Serial0
+#include <stdint.h>
 
 // ======================== 引脚定义 ========================
 #define PIN_I2C_SCL      48
@@ -20,18 +19,18 @@
 #define PIN_I2S_BCK       4
 #define PIN_I2S_LRCK      5
 #define PIN_I2S_DIN       6
-#define PIN_ADC_VOLUME    7     // ADC1_CH6, 电位器
-#define PIN_MCP_INTA     13     // 外部中断, 来自 MCP23017 INTA
+#define PIN_ADC_VOLUME    7
+#define PIN_MCP_INTA     13
 
 // ======================== 音频参数 ========================
 #define SAMPLE_RATE       44100
-#define BUFFER_FRAMES      256   // 每次处理的帧数 (立体声 = *2)
+#define BUFFER_FRAMES      256
 #define MAX_POLYPHONY       16
 #define MIDI_QUEUE_SIZE     32
 #define PARAM_QUEUE_SIZE    16
 
 // ======================== MCP23017 寄存器地址 (BANK=0) ========================
-#define MCP_ADDR          0x20  // A0=A1=A2=GND
+#define MCP_ADDR          0x20
 #define MCP_IODIRB        0x01
 #define MCP_GPPUB         0x0D
 #define MCP_IOCON         0x0A
@@ -40,10 +39,9 @@
 #define MCP_GPIOB         0x13
 
 // ======================== 预设开关引脚映射 ========================
-// GPB2=SW1, GPB3=SW2, GPB4=SW3, GPB5=SW4, GPB6=BUTTON
-#define MCP_SW_MASK       0x3C  // bits 2-5
+#define MCP_SW_MASK       0x3C
 #define MCP_SW_SHIFT         2
-#define MCP_BTN_MASK      0x40  // bit 6
+#define MCP_BTN_MASK      0x40
 
 // ======================== 波形枚举 ========================
 enum Waveform : uint8_t {
@@ -64,8 +62,8 @@ enum MsgType : uint8_t {
 
 struct MidiMsg {
     MsgType type;
-    uint8_t data1;   // note 或 preset_index
-    uint8_t data2;   // velocity
+    uint8_t data1;
+    uint8_t data2;
 };
 
 // ======================== 参数调整命令 ========================
@@ -122,33 +120,32 @@ struct Envelope {
 
 // ======================== 振荡器参数 (存储在预设中) ========================
 struct OscParams {
-    uint8_t  waveform;     // Waveform 枚举值 0-5
+    uint8_t  waveform;
     uint16_t attack_ms;
     bool     sustain;
     uint16_t release_ms;
-    float    volume;       // 0.0 ~ 1.0
-    float    pitchMul;     // 频率倍数: 2, 1.5, 1, 0.666667, 0.5
-    bool     useFilter1;   // 是否经过高通
-    bool     useFilter2;   // 是否经过低通
+    float    volume;
+    float    pitchMul;
+    bool     useFilter1;
+    bool     useFilter2;
 };
 
 // ======================== 滤波器参数 (存储在预设中) ========================
 struct FilterParams {
-    float fc;              // 截止频率 (Hz)
-    float intensity;       // 0.0 ~ 1.0
+    float fc;
+    float intensity;
 };
 
 // ======================== 预设 ========================
 struct Preset {
     OscParams    osc1;
     OscParams    osc2;
-    FilterParams filter1;  // 高通
-    FilterParams filter2;  // 低通
+    FilterParams filter1;
+    FilterParams filter2;
 };
 
 // ======================== 振荡器运行时状态 ========================
 struct OscVoice {
-    // 静态参数 (从预设拷贝)
     uint8_t waveform;
     float   volume;
     float   pitchMul;
@@ -159,12 +156,11 @@ struct OscVoice {
     float   filt2_alpha;
     float   filt2_intensity;
 
-    // 动态状态
     float    phase;
     float    baseFreq;
+    float    wavetableLayer;
     Envelope env;
 
-    // 一阶滤波器记忆
     float lp1_state;
     float lp2_state;
 };
@@ -173,13 +169,13 @@ struct OscVoice {
 struct Voice {
     bool     active;
     uint8_t  note;
-    float    velocityScale;  // velocity / 127.0
+    float    velocityScale;
     OscVoice osc1;
     OscVoice osc2;
-    uint32_t noteOnTime;     // 用于替换策略 (采样计数)
+    uint32_t noteOnTime;
 };
 
-// ======================== 全局变量 ========================
+// ======================== 全局变量 extern ========================
 extern QueueHandle_t midiQueue;
 extern QueueHandle_t paramQueue;
 
@@ -205,4 +201,9 @@ void printAudioStatus();
 
 void initUSBMidi();
 
+void initNoteToLayer();
+float lookupWavetable(uint8_t waveform, float phase, float layerFloat);
+
 float readVolume();
+
+#endif

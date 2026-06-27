@@ -17,6 +17,7 @@
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
+#include "src/config.h"
 
 // EspUsbHost 库
 #include "EspUsbHost.h"
