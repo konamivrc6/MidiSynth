@@ -12,6 +12,7 @@ play_midi.py — MIDI 文件播放器 (MidiSynth 交互前端)
   tempo <倍率>   设置速度倍率 (如: tempo 1.5)
   trans <半音>   移调 (如: trans 12 升八度)
   preset <0-15>  设置乐器 (如: preset 3)
+  stop           发送 All Notes Off (紧急静音)
   help           显示帮助
   quit / q       退出
 """
@@ -65,6 +66,7 @@ def print_help():
   tempo <倍率> 设置播放速度, 如: tempo 1.5  (默认 1.0)
   trans <半音> 移调, 如: trans 12  (升八度)
   preset <0-15>设置乐器编号, 如: preset 3
+  stop         发送 All Notes Off (紧急静音)
   help         显示此帮助
   quit / q     退出
 ========================""")
@@ -212,6 +214,19 @@ def main():
         # ---- help ----
         if cmd == "help":
             print_help()
+            continue
+
+        # ---- stop ----
+        if cmd == "stop":
+            if port is None:
+                print("  请先设置串口: port <COM号>")
+                continue
+            print("  发送 All Notes Off...")
+            subprocess.run([
+                sys.executable, MIDI2SERIAL,
+                "--stop", "--port", f"COM{port}"
+            ])
+            print("  完成")
             continue
 
         # ---- quit ----

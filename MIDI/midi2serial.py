@@ -230,9 +230,27 @@ def send_via_serial(commands, port, baud):
         print("[串口] 已关闭")
 
 
+def stop_all_notes(port, baud):
+    """发送 All Notes Off，不播放任何 MIDI。"""
+    try:
+        import serial
+    except ImportError:
+        print("[错误] 需要安装 pyserial", file=sys.stderr)
+        sys.exit(1)
+
+    ser = serial.Serial(port, baud, timeout=1)
+    try:
+        for _ in range(3):
+            for n in range(128):
+                ser.write(f"off {n}\n".encode('utf-8'))
+                time.sleep(0.01)
+    finally:
+        ser.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description="MIDI → MidiSynth 串口命令转换器")
-    parser.add_argument('midi_file', help='输入 MIDI 文件路径')
+    parser.add_argument('midi_file', nargs='?', help='输入 MIDI 文件路径 (--stop 时无需)')
     parser.add_argument('--port', '-p', help='串口设备 (不指定则打印到 stdout)')
     parser.add_argument('--baud', '-b', type=int, default=115200, help='波特率 (默认 115200)')
     parser.add_argument('--tempo', '-t', type=float, default=1.0, help='速度倍率 (默认 1.0)')
@@ -240,7 +258,21 @@ def main():
     parser.add_argument('--no-time', action='store_true', help='不显示时间信息')
     parser.add_argument('--transpose', '-T', type=int, default=0, help='移调/半音 (默认 0)')
     parser.add_argument('--preset', type=int, default=0, help='乐器预设 0-15 (默认 0)')
+    parser.add_argument('--stop', action='store_true', help='仅发送 All Notes Off 后退出')
     args = parser.parse_args()
+
+    if args.stop:
+        if not args.port:
+            print("[错误] --stop 需要 --port 指定串口", file=sys.stderr)
+            sys.exit(1)
+        print("[停止] 发送 All Notes Off...")
+        stop_all_notes(args.port, args.baud)
+        print("[停止] 完成")
+        return
+
+    if not args.midi_file:
+        print("[错误] 请指定 MIDI 文件, 或使用 --stop", file=sys.stderr)
+        sys.exit(1)
 
     print(f"[读取] {args.midi_file}")
     tpb, events, tempo_map = parse_midi(args.midi_file)
