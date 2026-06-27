@@ -6,6 +6,8 @@ play_midi.py — MIDI 文件播放器 (MidiSynth 交互前端)
 命令:
   数字 (0-N)     选择并播放对应 MIDI 文件
   port <COM号>   设置串口号 (如: port 3)
+  port auto      自动检测串口
+  port           列出所有可用串口
   list           刷新并列出 MIDI 文件
   tempo <倍率>   设置速度倍率 (如: tempo 1.5)
   trans <半音>   移调 (如: trans 12 升八度)
@@ -15,12 +17,22 @@ play_midi.py — MIDI 文件播放器 (MidiSynth 交互前端)
 """
 
 import os
+import re
 import sys
 import subprocess
+import serial.tools.list_ports
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MIDI_DIR = os.path.join(SCRIPT_DIR, "MIDI")
 MIDI2SERIAL = os.path.join(MIDI_DIR, "midi2serial.py")
+
+
+def scan_serial_ports():
+    """扫描可用串口，返回 [(port_name, description), ...]"""
+    ports = []
+    for p in serial.tools.list_ports.comports():
+        ports.append((p.device, p.description))
+    return ports
 
 
 def scan_midi_files():
@@ -47,6 +59,8 @@ def print_help():
 ===== MIDI 播放器 =====
   <数字>       播放对应编号的 MIDI 文件 (通过串口)
   port <COM号> 设置串口号, 如: port 3  →  COM3
+  port auto    自动检测串口
+  port         列出所有可用串口
   list         刷新文件列表
   tempo <倍率> 设置播放速度, 如: tempo 1.5  (默认 1.0)
   trans <半音> 移调, 如: trans 12  (升八度)
@@ -64,6 +78,18 @@ def main():
     tempo = 1.0
     transpose = 0
     preset = 0
+
+    # 启动时自动检测串口
+    ports = scan_serial_ports()
+    if len(ports) == 1:
+        m = re.search(r'COM(\d+)', ports[0][0], re.IGNORECASE)
+        if m:
+            port = int(m.group(1))
+    elif len(ports) > 1:
+        print("\n检测到多个串口:")
+        for i, (dev, desc) in enumerate(ports):
+            print(f"  [{i}] {dev} — {desc}")
+        print("  输入 port <COM号> 选择, 如 port 3")
 
     print("\n" + "=" * 50)
     print("  MidiSynth MIDI 播放器")
@@ -94,13 +120,38 @@ def main():
         if cmd == "port":
             if len(parts) < 2:
                 print(f"  当前串口: {'COM' + str(port) if port else '未设置'}")
-                print("  用法: port <数字>  如 port 3")
+                ports = scan_serial_ports()
+                if ports:
+                    print("  可用串口:")
+                    for dev, desc in ports:
+                        mark = " ← 当前" if port and f"COM{port}" == dev else ""
+                        print(f"    {dev} — {desc}{mark}")
+                else:
+                    print("  (未检测到串口)")
+                print("  用法: port <COM号> | port auto  如 port 3")
+                continue
+            arg = parts[1].lower()
+            if arg == "auto":
+                ports = scan_serial_ports()
+                if len(ports) == 1:
+                    m = re.search(r'COM(\d+)', ports[0][0], re.IGNORECASE)
+                    if m:
+                        port = int(m.group(1))
+                        print(f"  自动检测 → COM{port}")
+                    else:
+                        print(f"  无法解析端口名: {ports[0][0]}")
+                elif len(ports) == 0:
+                    print("  未检测到任何串口")
+                else:
+                    print(f"  检测到 {len(ports)} 个串口, 请手动选择:")
+                    for i, (dev, desc) in enumerate(ports):
+                        print(f"    [{i}] {dev} — {desc}")
                 continue
             try:
-                port = int(parts[1])
+                port = int(arg)
                 print(f"  串口 → COM{port}")
             except ValueError:
-                print(f"  无效串口号: {parts[1]}")
+                print(f"  无效串口号: {arg}")
             continue
 
         # ---- tempo ----

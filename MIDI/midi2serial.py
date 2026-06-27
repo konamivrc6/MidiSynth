@@ -204,8 +204,10 @@ def send_via_serial(commands, port, baud):
         ser.write(line.encode('utf-8'))
 
     def all_notes_off():
-        for n in range(128):
-            send(f"off {n}")
+        for _ in range(2):  # 发送两次以确保所有音符关闭
+            for n in range(128):
+                send(f"off {n}")
+                time.sleep(0.005)
 
     try:
         for delay, cmd in commands:
