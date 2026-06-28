@@ -349,9 +349,10 @@ static void processAudio(int16_t *buf, int frames, float masterVol) {
             }
         }
 
-        // 主音量 + 防削波
+        // 主音量 + 多项式软限幅
         mix *= masterVol * (1.0f / 16.0f);
-        if (mix > 1.0f)       mix = 1.0f;
+        mix = mix - 0.1f * mix * mix * mix;  // x - 0.1x³, f(1.0)=0.9
+        if (mix > 1.0f)       mix = 1.0f;      // 安全硬削，防多项式回头
         else if (mix < -1.0f) mix = -1.0f;
 
         int16_t sample = (int16_t)(mix * 32767.0f);
