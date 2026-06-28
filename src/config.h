@@ -157,8 +157,11 @@ struct OscVoice {
     float   filt2_intensity;
 
     float    phase;
+    float    phaseDelta;        // 预计算: baseFreq / SAMPLE_RATE, 消除每采样点浮点除法
     float    baseFreq;
-    float    wavetableLayer;
+    const int16_t *wt_table0;   // 缓存: 主波表层指针
+    const int16_t *wt_table1;   // 缓存: 次波表层指针 (与 table0 相同时跳过层间插值)
+    float    wt_frac;           // 层间插值因子
     Envelope env;
 
     float lp1_state;

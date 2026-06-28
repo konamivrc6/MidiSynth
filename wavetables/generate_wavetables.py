@@ -144,14 +144,21 @@ def generate_cpp(tables):
 """.format(size=WAVETABLE_SIZE, layers=NUM_LAYERS, forms=NUM_WAVEFORMS))
 
     # 单个波表数组
+    # Sine 所有层数据相同, 只生成 L0, 节省 ~41KB Flash
     wave_names = ["sine", "tri", "pulse18", "pulse14", "pulse12", "saw"]
     for wi, wname in enumerate(wave_names):
         parts.append(f"\n// ---------- {wname} ----------")
-        for layer in range(NUM_LAYERS):
-            name = _table_name(wname, layer)
-            data = tables[wi][layer]
+        if wname == "sine":
+            name = _table_name(wname, 0)
+            data = tables[wi][0]
             parts.append("")
             parts.append(_c_array(name, data))
+        else:
+            for layer in range(NUM_LAYERS):
+                name = _table_name(wname, layer)
+                data = tables[wi][layer]
+                parts.append("")
+                parts.append(_c_array(name, data))
 
     # 2D 指针索引表: wavetables[波形][层级] → 指向对应波表
     parts.append(f"""
@@ -162,7 +169,8 @@ const int16_t * const wavetables[NUM_WAVEFORMS][NUM_TABLE_LAYERS] = {{""")
         parts.append(f"    {{  // {wname}")
         for layer in range(NUM_LAYERS):
             comma = "," if layer + 1 < NUM_LAYERS else ""
-            parts.append(f"        {_table_name(wname, layer)}{comma}")
+            ref_name = _table_name(wname, 0) if wname == "sine" else _table_name(wname, layer)
+            parts.append(f"        {ref_name}{comma}")
         comma2 = "," if wi + 1 < NUM_WAVEFORMS else ""
         parts.append(f"    }}{comma2}")
     parts.append("};")

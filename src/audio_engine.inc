@@ -60,13 +60,14 @@ static inline void updateEnvelope(Envelope &env) {
     // ENV_SUSTAIN: 保持当前 level 不变
 }
 
-// ---------- 波形生成 (分层波表查表，抗混叠) ----------
+// ---------- 波形生成 (缓存表指针，消除每采样点浮点除法和2D指针解引用) ----------
 static inline float generateWaveform(OscVoice &osc) {
-    float delta = osc.baseFreq / SAMPLE_RATE;
-    osc.phase += delta;
+    osc.phase += osc.phaseDelta;
     if (osc.phase >= 1.0f) osc.phase -= 1.0f;
-    if (osc.phase < 0.0f)  osc.phase += 1.0f;
-    return lookupWavetable(osc.waveform, osc.phase, osc.wavetableLayer);
+    float s0 = readWavetable(osc.wt_table0, osc.phase);
+    if (osc.wt_table1 == osc.wt_table0) return s0;  // 无需层间插值
+    float s1 = readWavetable(osc.wt_table1, osc.phase);
+    return s0 + osc.wt_frac * (s1 - s0);
 }
 
 // ---------- 滤波器 ----------
@@ -98,12 +99,33 @@ static void initOscVoice(OscVoice &osc, const OscParams &params, float baseFreq,
     osc.filt2_intensity = f2i;
     osc.phase        = 0.0f;
     osc.baseFreq     = baseFreq * params.pitchMul;
-    // 分层波表: 由有效频率决定层级 (含 pitchMul 偏移)
+    osc.phaseDelta   = osc.baseFreq / SAMPLE_RATE;
+
+    // 缓存波表指针: 由有效频率决定层索引, 预计算避免热路径 2D 解引用
     float effFreq = osc.baseFreq;
     float layer = log2f(effFreq * WAVETABLE_SIZE / SAMPLE_RATE);
     if (layer < 0.0f) layer = 0.0f;
     if (layer > NUM_TABLE_LAYERS - 1) layer = (float)(NUM_TABLE_LAYERS - 1);
-    osc.wavetableLayer = layer;
+
+    int l0 = (int)layer;
+    float frac = layer - (float)l0;
+    int l1 = (l0 + 1 < NUM_TABLE_LAYERS) ? l0 + 1 : l0;
+
+    if (params.waveform == WAVE_SINE) {
+        // 所有层相同, 强制单层查表
+        osc.wt_table0 = wavetables[WAVE_SINE][0];
+        osc.wt_table1 = osc.wt_table0;
+        osc.wt_frac   = 0.0f;
+    } else if (frac == 0.0f) {
+        osc.wt_table0 = wavetables[params.waveform][l0];
+        osc.wt_table1 = osc.wt_table0;
+        osc.wt_frac   = 0.0f;
+    } else {
+        osc.wt_table0 = wavetables[params.waveform][l0];
+        osc.wt_table1 = wavetables[params.waveform][l1];
+        osc.wt_frac   = frac;
+    }
+
     osc.lp1_state    = 0.0f;
     osc.lp2_state    = 0.0f;
 
