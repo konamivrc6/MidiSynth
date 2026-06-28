@@ -11,8 +11,9 @@ play_midi.py — MIDI 文件播放器 (MidiSynth 交互前端)
   list           刷新并列出 MIDI 文件
   tempo <倍率>   设置速度倍率 (如: tempo 1.5)
   trans <半音>   移调 (如: trans 12 升八度)
-  preset <0-15>  设置乐器 (如: preset 3)
+  inst <0-15>   设置乐器 (如: inst 3)
   stop           发送 All Notes Off (紧急静音)
+  repeat <N> [次] 循环播放, 如 repeat 0 5  (次数省略则无限)
   help           显示帮助
   quit / q       退出
 """
@@ -65,11 +66,36 @@ def print_help():
   list         刷新文件列表
   tempo <倍率> 设置播放速度, 如: tempo 1.5  (默认 1.0)
   trans <半音> 移调, 如: trans 12  (升八度)
-  preset <0-15>设置乐器编号, 如: preset 3
+  inst <0-15>设置乐器编号, 如: inst 3
   stop         发送 All Notes Off (紧急静音)
+  repeat <N> [次] 循环播放, 如 repeat 0 5
   help         显示此帮助
   quit / q     退出
 ========================""")
+
+
+def play_file(idx, files, port, tempo, transpose, inst):
+    """播放一次，返回 True 表示正常结束，False 表示被中断。"""
+    name = os.path.basename(files[idx])
+    print(f"\n  ▶ 播放: {name}")
+    print(f"  串口: COM{port}  速度: x{tempo}  移调: {transpose:+d}  乐器: #{inst}")
+    print(f"  发送中... (按 Ctrl+C 可中断)\n")
+
+    args = [
+        sys.executable, MIDI2SERIAL,
+        files[idx],
+        "--port", f"COM{port}",
+        "--tempo", str(tempo),
+        "--transpose", str(transpose),
+        "--preset", str(inst),
+    ]
+
+    try:
+        subprocess.run(args)
+        return True
+    except KeyboardInterrupt:
+        print("\n  [已中断]")
+        return False
 
 
 def main():
@@ -79,7 +105,9 @@ def main():
     port = None
     tempo = 1.0
     transpose = 0
-    preset = 0
+    inst = 0
+    repeat_idx = None
+    repeat_count = None
 
     # 启动时自动检测串口
     ports = scan_serial_ports()
@@ -100,7 +128,7 @@ def main():
     files = scan_midi_files()
 
     print(f"\n串口: {'未设置' if port is None else f'COM{port}'}  |  "
-          f"速度: x{tempo}  |  移调: {transpose:+d}  |  乐器: #{preset}")
+          f"速度: x{tempo}  |  移调: {transpose:+d}  |  乐器: #{inst}")
     print(f"\nMIDI 文件列表 ({MIDI_DIR}):")
     print_list(files)
     print("\n输入数字播放, 输入 help 查看帮助\n")
@@ -186,19 +214,19 @@ def main():
                 print(f"  无效移调值: {parts[1]}")
             continue
 
-        # ---- preset ----
-        if cmd == "preset":
+        # ---- inst ----
+        if cmd == "inst":
             if len(parts) < 2:
-                print(f"  当前乐器: #{preset}")
-                print("  用法: preset <0-15>  如 preset 3")
+                print(f"  当前乐器: #{inst}")
+                print("  用法: inst <0-15>  如 inst 3")
                 continue
             try:
                 p = int(parts[1])
                 if p < 0 or p > 15:
                     print("  乐器编号范围: 0-15")
                 else:
-                    preset = p
-                    print(f"  乐器 → #{preset}")
+                    inst = p
+                    print(f"  乐器 → #{inst}")
             except ValueError:
                 print(f"  无效编号: {parts[1]}")
             continue
@@ -229,6 +257,59 @@ def main():
             print("  完成")
             continue
 
+        # ---- repeat ----
+        if cmd == "repeat":
+            if len(parts) < 2:
+                if repeat_idx is not None:
+                    c = "∞" if repeat_count is None else str(repeat_count)
+                    print(f"  当前循环: [{repeat_idx}] ×{c}")
+                else:
+                    print("  未设置循环")
+                print("  用法: repeat <乐曲编号> [次数]  如 repeat 0 5")
+                continue
+            try:
+                idx = int(parts[1])
+            except ValueError:
+                print(f"  无效编号: {parts[1]}")
+                continue
+            files = scan_midi_files()
+            if idx < 0 or idx >= len(files):
+                print(f"  编号超出范围, 共 {len(files)} 个文件 (0-{len(files) - 1})")
+                continue
+            if port is None:
+                print("  请先设置串口: port <COM号>")
+                continue
+
+            count = None
+            if len(parts) >= 3:
+                try:
+                    count = int(parts[2])
+                    if count < 1:
+                        print("  循环次数必须 ≥ 1")
+                        continue
+                except ValueError:
+                    print(f"  无效次数: {parts[2]}")
+                    continue
+
+            c = "∞" if count is None else str(count)
+            name = os.path.basename(files[idx])
+            print(f"  循环播放 [{idx}] {name} ×{c}")
+
+            iteration = 0
+            while True:
+                iteration += 1
+                if count is not None and iteration > count:
+                    break
+                if count is not None:
+                    print(f"\n——— 第 {iteration}/{count} 遍 ———")
+                else:
+                    print(f"\n——— 第 {iteration} 遍 ———")
+
+                if not play_file(idx, files, port, tempo, transpose, inst):
+                    print(f"  [循环已中断]")
+                    break
+            continue
+
         # ---- quit ----
         if cmd in ("quit", "q", "exit"):
             print("  再见!")
@@ -250,26 +331,7 @@ def main():
             print("  请先设置串口: port <COM号>  如 port 3")
             continue
 
-        midi_path = files[idx]
-        name = os.path.basename(midi_path)
-        print(f"\n  ▶ 播放: {name}")
-        print(f"  串口: COM{port}  速度: x{tempo}  移调: {transpose:+d}  乐器: #{preset}")
-        print(f"  发送中... (按 Ctrl+C 可中断)\n")
-
-        args = [
-            sys.executable, MIDI2SERIAL,
-            midi_path,
-            "--port", f"COM{port}",
-            "--tempo", str(tempo),
-            "--transpose", str(transpose),
-            "--preset", str(preset),
-        ]
-
-        try:
-            subprocess.run(args)
-        except KeyboardInterrupt:
-            print("\n  [已中断]")
-
+        play_file(idx, files, port, tempo, transpose, inst)
         print()
 
 
