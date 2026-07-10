@@ -246,12 +246,7 @@ def send_via_serial(commands, port, baud):
             # if cmd_count % 100 == 0:
             #     print(f"\r  已发送 {cmd_count} 条, 当前时间 {last_sec:.1f}s", end="")
 
-        # 播放完毕，等待后续性能报告 (约 1 ~ 2 个报告周期)
-        print(f"\n[完成] 已发送 {cmd_count} 条命令, 等待性能报告...")
-        for remaining in range(8, 0, -1):
-            print(f"\r  继续监听 {remaining}s (Ctrl+C 提前退出)", end="")
-            time.sleep(1)
-        print()
+        print(f"\n[完成] 已发送 {cmd_count} 条命令")
 
     except KeyboardInterrupt:
         print(f"\n[停止] 发送 {cmd_count} 条后中断")
