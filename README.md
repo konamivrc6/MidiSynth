@@ -47,7 +47,7 @@ MidiSynth.ino          # Arduino 主文件（setup / loop / 串口命令）
 
 - **双振荡器**：每个 Voice 包含 OSC1 + OSC2，可独立配置波形、音高倍数、音量、包络、滤波器路由
 - **6 种波形**：Sine、Triangle、Pulse 1/8、Pulse 1/4、Pulse 1/2、Saw
-- **ASR 包络**：Attack / Sustain / Release（无 Decay 阶段）
+- **ADSR 包络**：Attack / Decay / Sustain / Release，可独立配置 Attack 时间、Decay 时间、Sustain Level、Sustain 开关、Release 时间
 - **双滤波器**：Filter1 高通 + Filter2 低通，一阶 IIR，可独立配置截止频率和强度
 - **16 复音**：带智能 Voice 分配策略（同音符触发 Release → 空闲 → 衰减中 → 最早触发）
 
@@ -137,6 +137,8 @@ preset <0-15>             — 加载预设
 o1wave <0-5>  o2wave <0-5>   — 波形: 0=Sine 1=Tri 2=P1/8 3=P1/4 4=P1/2 5=Saw
 o1atk  <ms>    o2atk  <ms>    — Attack 时间 (ms)
 o1sus  <0|1>   o2sus  <0|1>   — Sustain 开关
+o1dec  <ms>    o2dec  <ms>    — Decay 时间 (ms)
+o1slv  <0-1>   o2slv  <0-1>   — Sustain Level
 o1rel  <ms>    o2rel  <ms>    — Release 时间 (ms)
 o1vol  <0-1>   o2vol  <0-1>   — 音量
 o1pm   <f>     o2pm   <f>     — 音高倍数 (2.0, 1.5, 1.0, 0.667, 0.5)

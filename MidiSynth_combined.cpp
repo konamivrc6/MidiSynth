@@ -103,8 +103,8 @@ uint8_t readMCP23017_GPIOB() {
 
 /*
  * 预设结构 (定义于 config.cpp):
- *   OscParams { waveform(0-5), attack_ms, sustain, release_ms, volume(0-1),
- *               pitchMul, useFilter1, useFilter2 }
+ *   OscParams { waveform(0-5), attack_ms, sustain, decayTime, sustainLv,
+ *               release_ms, volume(0-1), pitchMul, useFilter1, useFilter2 }
  *   FilterParams { fc(Hz), intensity(0-1) }
  *   Preset { OscParams osc1; OscParams osc2; FilterParams filter1; FilterParams filter2; }
  *
@@ -123,8 +123,8 @@ const Preset presets[16] = {
     // 0: Grand Piano — 明亮钢琴
     // ============================================================
     {
-        { WAVE_SINE, 10, true,  200, 0.80f, PM1,  false, true  },  // osc1
-        { WAVE_TRI,  30, true,  400, 0.40f, PM1,  false, true  },  // osc2
+        { WAVE_SINE, 10, true, 500, 0.25f, 200, 0.80f, PM1,  false, true  },  // osc1
+        { WAVE_TRI,  30, true, 700, 0.30f, 400, 0.40f, PM1,  false, true  },  // osc2
         { 2000, 0.5f },   // filter1: HP, 轻微去低频
         { 8000, 0.35f }    // filter2: LP, 轻微柔化高频
     },
@@ -133,8 +133,8 @@ const Preset presets[16] = {
     // 1: Warm Strings — 温暖弦乐
     // ============================================================
     {
-        { WAVE_SAW,  80, true,  500, 0.70f, PM1,  false, true  },
-        { WAVE_SAW, 100, true,  600, 0.45f, PM1,  false, true  },
+        { WAVE_SAW,  80, true,  0, 1.0f, 500, 0.70f, PM1,  false, true  },
+        { WAVE_SAW, 100, true,  0, 1.0f, 600, 0.45f, PM1,  false, true  },
         { 150,  0.3f  },   // HP: 轻微去除次声频
         { 3500, 0.75f }    // LP: 大幅柔化
     },
@@ -143,8 +143,8 @@ const Preset presets[16] = {
     // 2: Synth Brass — 合成铜管
     // ============================================================
     {
-        { WAVE_SAW,       25, true, 150, 0.85f, PM1,  false, true  },
-        { WAVE_PULSE_1_2, 35, true, 200, 0.55f, PM1,  false, true  },
+        { WAVE_SAW,       25, true,  80, 0.85f, 150, 0.85f, PM1,  false, true  },
+        { WAVE_PULSE_1_2, 35, true, 100, 0.80f, 200, 0.55f, PM1,  false, true  },
         { 200, 0.35f },
         { 5000, 0.45f }
     },
@@ -153,8 +153,8 @@ const Preset presets[16] = {
     // 3: Dream Pad — 梦幻铺底
     // ============================================================
     {
-        { WAVE_SINE, 200, true, 900, 0.60f, PM1,  false, true  },
-        { WAVE_TRI,  250, true, 800, 0.55f, PM05, false, true  },  // 低八度
+        { WAVE_SINE, 200, true,  0, 1.0f, 900, 0.60f, PM1,  false, true  },
+        { WAVE_TRI,  250, true,  0, 1.0f, 800, 0.55f, PM05, false, true  },  // 低八度
         { 100, 0.4f  },
         { 1800, 0.85f }
     },
@@ -163,8 +163,8 @@ const Preset presets[16] = {
     // 4: Pluck Bass — 拨弦贝斯
     // ============================================================
     {
-        { WAVE_TRI,        5, false, 120, 1.00f, PM1,  false, true },
-        { WAVE_SAW,        8, false,  80, 0.25f, PM05, false, true }, // 低八度
+        { WAVE_TRI,        5, false,  0, 1.0f, 120, 1.00f, PM1,  false, true },
+        { WAVE_SAW,        8, false,  0, 1.0f,  80, 0.25f, PM05, false, true }, // 低八度
         { 80,  0.3f },
         { 1200, 0.70f }
     },
@@ -173,8 +173,8 @@ const Preset presets[16] = {
     // 5: FM Bell — 调频钟铃
     // ============================================================
     {
-        { WAVE_SINE,  2, false, 700, 0.80f, PM1,  true,  true  },
-        { WAVE_SINE,  3, false, 500, 0.55f, PM2,  false, true  },  // 高八度泛音
+        { WAVE_SINE,  2, false,  0, 1.0f, 700, 0.80f, PM1,  true,  true  },
+        { WAVE_SINE,  3, false,  0, 1.0f, 500, 0.55f, PM2,  false, true  },  // 高八度泛音
         { 600,  0.50f },   // HP: 去低频, 突出金属感
         { 8000, 0.30f }
     },
@@ -183,8 +183,8 @@ const Preset presets[16] = {
     // 6: Accordion — 手风琴
     // ============================================================
     {
-        { WAVE_PULSE_1_2, 40, true, 60, 0.90f, PM1,  false, false },
-        { WAVE_PULSE_1_4, 50, true, 50, 0.70f, PM1,  false, false },
+        { WAVE_PULSE_1_2, 40, true,  0, 1.0f, 60, 0.90f, PM1,  false, false },
+        { WAVE_PULSE_1_4, 50, true,  0, 1.0f, 50, 0.70f, PM1,  false, false },
         { 50,  0.1f  },   // 几乎不过滤
         { 20000, 0.05f }
     },
@@ -193,8 +193,8 @@ const Preset presets[16] = {
     // 7: Lead Saw — 主音锯齿
     // ============================================================
     {
-        { WAVE_SAW,       15, true, 120, 0.90f, PM1,  false, true  },
-        { WAVE_PULSE_1_8, 20, true, 100, 0.35f, PM1,  false, true  },
+        { WAVE_SAW,       15, true,  0, 1.0f, 120, 0.90f, PM1,  false, true  },
+        { WAVE_PULSE_1_8, 20, true,  0, 1.0f, 100, 0.35f, PM1,  false, true  },
         { 120, 0.25f },
         { 4500, 0.55f }
     },
@@ -203,8 +203,8 @@ const Preset presets[16] = {
     // 8: Crystal — 水晶音色
     // ============================================================
     {
-        { WAVE_SINE, 120, true, 1100, 0.70f, PM1,  false, true },
-        { WAVE_TRI,  100, true, 1000, 0.60f, PM15, false, true },  // 五度泛音
+        { WAVE_SINE, 120, true, 300, 0.50f, 1100, 0.70f, PM1,  false, true },
+        { WAVE_TRI,  100, true, 350, 0.45f, 1000, 0.60f, PM15, false, true },  // 五度泛音
         { 350, 0.40f },
         { 2800, 0.65f }
     },
@@ -213,8 +213,8 @@ const Preset presets[16] = {
     // 9: VRC6 Pluse Pluck — VRC6 方波弹拨
     // ============================================================
     {
-        { WAVE_PULSE_1_8,  5, false,  90, 0.90f, PM1, false, true },
-        { WAVE_PULSE_1_4,  5, false,  70, 0.45f, PM1, false, true },
+        { WAVE_PULSE_1_8,  5, false,  0, 1.0f,  90, 0.90f, PM1, false, true },
+        { WAVE_PULSE_1_4,  5, false,  0, 1.0f,  70, 0.45f, PM1, false, true },
         { 150, 0.15f },
         { 6500, 0.35f }
     },
@@ -223,8 +223,8 @@ const Preset presets[16] = {
     // 10: Deep Bass — 深低音
     // ============================================================
     {
-        { WAVE_SAW,  8, true, 250, 1.00f, PM1,  false, true },
-        { WAVE_SINE, 5, true, 200, 0.45f, PM05, false, true },  // 低八度
+        { WAVE_SAW,  8, true,  0, 1.0f, 250, 1.00f, PM1,  false, true },
+        { WAVE_SINE, 5, true,  0, 1.0f, 200, 0.45f, PM05, false, true },  // 低八度
         { 40,  0.2f },
         { 700, 0.85f }
     },
@@ -233,8 +233,8 @@ const Preset presets[16] = {
     // 11: Harpsichord — 羽管键琴
     // ============================================================
     {
-        { WAVE_PULSE_1_2,  3, false, 140, 0.80f, PM1, false, true },
-        { WAVE_PULSE_1_8,  3, false, 100, 0.55f, PM2, false, true },  // 高八度
+        { WAVE_PULSE_1_2,  3, false,  0, 1.0f, 140, 0.80f, PM1, false, true },
+        { WAVE_PULSE_1_8,  3, false,  0, 1.0f, 100, 0.55f, PM2, false, true },  // 高八度
         { 100, 0.10f },
         { 7000, 0.25f }
     },
@@ -243,8 +243,8 @@ const Preset presets[16] = {
     // 12: Pan Flute — 排箫
     // ============================================================
     {
-        { WAVE_SINE, 70, true, 350, 0.85f, PM1,  false, true  },
-        { WAVE_SINE, 90, true, 400, 0.15f, PM1,  false, true  },
+        { WAVE_SINE, 70, true,  0, 1.0f, 350, 0.85f, PM1,  false, true  },
+        { WAVE_SINE, 90, true,  0, 1.0f, 400, 0.15f, PM1,  false, true  },
         { 250, 0.35f },    // HP: 去低频呼吸声
         { 3500, 0.55f }
     },
@@ -253,8 +253,8 @@ const Preset presets[16] = {
     // 13: Trumpet — 小号
     // ============================================================
     {
-        { WAVE_SAW,       20, true, 130, 0.90f, PM1, false, true },
-        { WAVE_PULSE_1_2, 25, true, 150, 0.50f, PM1, false, true },
+        { WAVE_SAW,       20, true,  60, 0.88f, 130, 0.90f, PM1, false, true },
+        { WAVE_PULSE_1_2, 25, true,  80, 0.85f, 150, 0.50f, PM1, false, true },
         { 180, 0.35f },
         { 6500, 0.35f }
     },
@@ -263,8 +263,8 @@ const Preset presets[16] = {
     // 14: Vibraphone — 颤音琴
     // ============================================================
     {
-        { WAVE_SINE,  5, true, 1800, 0.75f, PM1, false, true },
-        { WAVE_TRI,   8, true, 1400, 0.40f, PM2, false, true },  // 高八度泛音
+        { WAVE_SINE,  5, true, 600, 0.40f, 1800, 0.75f, PM1, false, true },
+        { WAVE_TRI,   8, true, 700, 0.35f, 1400, 0.40f, PM2, false, true },  // 高八度泛音
         { 80,  0.25f },
         { 5000, 0.45f }
     },
@@ -273,8 +273,8 @@ const Preset presets[16] = {
     // 15: Tutti Orchestra — 全奏乐团
     // ============================================================
     {
-        { WAVE_SAW, 120, true, 550, 0.80f, PM1,  false, true },
-        { WAVE_TRI, 150, true, 600, 0.55f, PM1,  false, true },
+        { WAVE_SAW, 120, true,  0, 1.0f, 550, 0.80f, PM1,  false, true },
+        { WAVE_TRI, 150, true,  0, 1.0f, 600, 0.55f, PM1,  false, true },
         { 80,  0.30f },
         { 4500, 0.55f }
     }
@@ -7808,12 +7808,22 @@ static inline void updateEnvelope(Envelope &env) {
         env.level += env.delta;
         if (env.level >= 1.0f) {
             env.level = 1.0f;
-            if (env.sustain) {
+            if (env.sustain && env.sustainLv < 1.0f) {
+                env.state = ENV_DECAY;
+                env.delta = env.decayDelta;
+            } else if (env.sustain) {
+                env.level = env.sustainLv;
                 env.state = ENV_SUSTAIN;
             } else {
-                env.state  = ENV_RELEASE;
-                env.delta  = env.releaseDelta;
+                env.state = ENV_RELEASE;
+                env.delta = env.releaseDelta;
             }
+        }
+    } else if (env.state == ENV_DECAY) {
+        env.level += env.delta;  // delta 为负数 (下降至 sustainLv)
+        if (env.level <= env.sustainLv) {
+            env.level = env.sustainLv;
+            env.state = ENV_SUSTAIN;
         }
     } else if (env.state == ENV_RELEASE) {
         env.level += env.delta;  // delta 为负数
@@ -7895,15 +7905,23 @@ static void initOscVoice(OscVoice &osc, const OscParams &params, float baseFreq,
     osc.lp2_state    = 0.0f;
 
     // 包络初始化
-    osc.env.level  = 0.0f;
-    osc.env.state  = ENV_ATTACK;
-    osc.env.sustain = params.sustain;
+    osc.env.level     = 0.0f;
+    osc.env.state     = ENV_ATTACK;
+    osc.env.sustain   = params.sustain;
+    osc.env.sustainLv = params.sustainLv;
     // delta = 1.0 / (attack_ms * 44.1), 最小 1ms 防除零
     uint16_t atk = (params.attack_ms < 1) ? 1 : params.attack_ms;
     osc.env.attackDelta = 1.0f / (atk * 44.1f);
     osc.env.delta       = osc.env.attackDelta;
+    // Decay delta: 从 1.0 降至 sustainLv
+    if (params.decayTime > 0 && params.sustainLv < 1.0f) {
+        osc.env.decayDelta = (params.sustainLv - 1.0f) / (params.decayTime * 44.1f);
+    } else {
+        osc.env.decayDelta = 0.0f;
+    }
+    // Release delta: 从 sustainLv 降至 0
     uint16_t rel = (params.release_ms < 1) ? 1 : params.release_ms;
-    osc.env.releaseDelta = -1.0f / (rel * 44.1f);
+    osc.env.releaseDelta = -params.sustainLv / (rel * 44.1f);
 }
 
 // ---------- Voice 分配 ----------
@@ -7913,7 +7931,7 @@ static int8_t allocateVoice(uint8_t note, uint8_t velocity) {
         if (voices[i].active && voices[i].note == note) {
             for (int j = 0; j < 2; j++) {
                 Envelope &env = (j == 0) ? voices[i].osc1.env : voices[i].osc2.env;
-                if (env.state == ENV_ATTACK || env.state == ENV_SUSTAIN) {
+                if (env.state == ENV_ATTACK || env.state == ENV_DECAY || env.state == ENV_SUSTAIN) {
                     env.state = ENV_RELEASE;
                     env.delta = env.releaseDelta;
                 }
@@ -7977,6 +7995,10 @@ static void applyParam(uint8_t id, float val) {
         case PARAM_O2_SUSTAIN:  currentPreset.osc2.sustain    = (val > 0.0f);  break;
         case PARAM_O1_RELEASE:  currentPreset.osc1.release_ms = (uint16_t)val; break;
         case PARAM_O2_RELEASE:  currentPreset.osc2.release_ms = (uint16_t)val; break;
+        case PARAM_O1_DECAY_TIME: currentPreset.osc1.decayTime = (uint16_t)val; break;
+        case PARAM_O2_DECAY_TIME: currentPreset.osc2.decayTime = (uint16_t)val; break;
+        case PARAM_O1_SUSTAIN_LV: currentPreset.osc1.sustainLv = val;           break;
+        case PARAM_O2_SUSTAIN_LV: currentPreset.osc2.sustainLv = val;           break;
         case PARAM_O1_VOLUME:   currentPreset.osc1.volume     = val;           break;
         case PARAM_O2_VOLUME:   currentPreset.osc2.volume     = val;           break;
         case PARAM_O1_PITCHMUL: currentPreset.osc1.pitchMul   = val;           break;
@@ -8009,14 +8031,16 @@ void printAudioStatus() {
         }
     };
     Serial.println(F("\n===== 当前参数 ====="));
-    Serial.printf("  OSC1: %s  atk=%d  sus=%d  rel=%d  vol=%.2f  pm=%.3f  f1=%d  f2=%d\n",
+    Serial.printf("  OSC1: %s  atk=%d  sus=%d  dec=%d  susLv=%.2f  rel=%d  vol=%.2f  pm=%.3f  f1=%d  f2=%d\n",
         wn(currentPreset.osc1.waveform), currentPreset.osc1.attack_ms,
-        currentPreset.osc1.sustain, currentPreset.osc1.release_ms,
+        currentPreset.osc1.sustain, currentPreset.osc1.decayTime,
+        currentPreset.osc1.sustainLv, currentPreset.osc1.release_ms,
         currentPreset.osc1.volume, currentPreset.osc1.pitchMul,
         currentPreset.osc1.useFilter1, currentPreset.osc1.useFilter2);
-    Serial.printf("  OSC2: %s  atk=%d  sus=%d  rel=%d  vol=%.2f  pm=%.3f  f1=%d  f2=%d\n",
+    Serial.printf("  OSC2: %s  atk=%d  sus=%d  dec=%d  susLv=%.2f  rel=%d  vol=%.2f  pm=%.3f  f1=%d  f2=%d\n",
         wn(currentPreset.osc2.waveform), currentPreset.osc2.attack_ms,
-        currentPreset.osc2.sustain, currentPreset.osc2.release_ms,
+        currentPreset.osc2.sustain, currentPreset.osc2.decayTime,
+        currentPreset.osc2.sustainLv, currentPreset.osc2.release_ms,
         currentPreset.osc2.volume, currentPreset.osc2.pitchMul,
         currentPreset.osc2.useFilter1, currentPreset.osc2.useFilter2);
     Serial.printf("  HPF: fc=%.0fHz  int=%.2f\n", currentPreset.filter1.fc, currentPreset.filter1.intensity);
@@ -8055,7 +8079,7 @@ static void noteOff(uint8_t note) {
         // 对两个振荡器触发 Release
         for (int j = 0; j < 2; j++) {
             Envelope &env = (j == 0) ? voices[i].osc1.env : voices[i].osc2.env;
-            if (env.state == ENV_ATTACK || env.state == ENV_SUSTAIN) {
+            if (env.state == ENV_ATTACK || env.state == ENV_DECAY || env.state == ENV_SUSTAIN) {
                 env.state  = ENV_RELEASE;
                 env.delta  = env.releaseDelta;
             }

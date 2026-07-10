@@ -67,6 +67,10 @@ enum ParamId : uint8_t {
     PARAM_O2_SUSTAIN,
     PARAM_O1_RELEASE,
     PARAM_O2_RELEASE,
+    PARAM_O1_DECAY_TIME,
+    PARAM_O2_DECAY_TIME,
+    PARAM_O1_SUSTAIN_LV,
+    PARAM_O2_SUSTAIN_LV,
     PARAM_O1_VOLUME,
     PARAM_O2_VOLUME,
     PARAM_O1_PITCHMUL,
@@ -140,6 +144,8 @@ static void printHelp() {
     Serial.println(F(" o1wave <0-5>  o2wave <0-5>  — 波形: 0=Sine 1=Tri 2=P1/8 3=P1/4 4=P1/2 5=Saw"));
     Serial.println(F(" o1atk  <ms>    o2atk  <ms>    — Attack 时间"));
     Serial.println(F(" o1sus  <0|1>   o2sus  <0|1>   — Sustain 开关"));
+    Serial.println(F(" o1dec  <ms>    o2dec  <ms>    — Decay 时间"));
+    Serial.println(F(" o1slv  <0-1>   o2slv  <0-1>   — Sustain Level"));
     Serial.println(F(" o1rel  <ms>    o2rel  <ms>    — Release 时间"));
     Serial.println(F(" o1vol  <0-1>   o2vol  <0-1>   — 音量"));
     Serial.println(F(" o1pm   <f>     o2pm   <f>     — 音高倍数"));
@@ -229,6 +235,8 @@ static void parseCommand(char *cmd) {
         {"o1atk",  PARAM_O1_ATTACK},   {"o2atk",  PARAM_O2_ATTACK},
         {"o1sus",  PARAM_O1_SUSTAIN},  {"o2sus",  PARAM_O2_SUSTAIN},
         {"o1rel",  PARAM_O1_RELEASE},  {"o2rel",  PARAM_O2_RELEASE},
+        {"o1dec",  PARAM_O1_DECAY_TIME}, {"o2dec",  PARAM_O2_DECAY_TIME},
+        {"o1slv",  PARAM_O1_SUSTAIN_LV}, {"o2slv",  PARAM_O2_SUSTAIN_LV},
         {"o1vol",  PARAM_O1_VOLUME},   {"o2vol",  PARAM_O2_VOLUME},
         {"o1pm",   PARAM_O1_PITCHMUL}, {"o2pm",   PARAM_O2_PITCHMUL},
         {"o1f1",   PARAM_O1_USEF1},    {"o1f2",   PARAM_O1_USEF2},

@@ -76,6 +76,10 @@ enum ParamId : uint8_t {
     PARAM_O2_SUSTAIN,
     PARAM_O1_RELEASE,
     PARAM_O2_RELEASE,
+    PARAM_O1_DECAY_TIME,
+    PARAM_O2_DECAY_TIME,
+    PARAM_O1_SUSTAIN_LV,
+    PARAM_O2_SUSTAIN_LV,
     PARAM_O1_VOLUME,
     PARAM_O2_VOLUME,
     PARAM_O1_PITCHMUL,
@@ -105,8 +109,9 @@ struct TaskParams {
 enum EnvState : uint8_t {
     ENV_OFF     = 0,
     ENV_ATTACK  = 1,
-    ENV_SUSTAIN = 2,
-    ENV_RELEASE = 3
+    ENV_DECAY   = 2,
+    ENV_SUSTAIN = 3,
+    ENV_RELEASE = 4
 };
 
 struct Envelope {
@@ -114,7 +119,9 @@ struct Envelope {
     float delta;
     EnvState state;
     float attackDelta;
+    float decayDelta;
     float releaseDelta;
+    float sustainLv;
     bool  sustain;
 };
 
@@ -123,6 +130,8 @@ struct OscParams {
     uint8_t  waveform;
     uint16_t attack_ms;
     bool     sustain;
+    uint16_t decayTime;
+    float    sustainLv;
     uint16_t release_ms;
     float    volume;
     float    pitchMul;

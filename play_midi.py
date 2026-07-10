@@ -66,7 +66,7 @@ def print_help():
   list         刷新文件列表
   tempo <倍率> 设置播放速度, 如: tempo 1.5  (默认 1.0)
   trans <半音> 移调, 如: trans 12  (升八度)
-  inst <0-15>设置乐器编号, 如: inst 3
+  inst [0-15]设置或查看乐器, 如: inst 3
   stop         发送 All Notes Off (紧急静音)
   repeat <N> [次] 循环播放, 如 repeat 0 5
   help         显示此帮助
@@ -214,11 +214,34 @@ def main():
                 print(f"  无效移调值: {parts[1]}")
             continue
 
+        PRESET_NAMES = [
+            "Grand Piano — 明亮钢琴",
+            "Warm Strings — 温暖弦乐",
+            "Synth Brass — 合成铜管",
+            "Dream Pad — 梦幻铺底",
+            "Pluck Bass — 拨弦贝斯",
+            "FM Bell — 调频钟铃",
+            "Accordion — 手风琴",
+            "Lead Saw — 主音锯齿",
+            "Crystal — 水晶音色",
+            "VRC6 Pluse Pluck — VRC6 方波弹拨",
+            "Deep Bass — 深低音",
+            "Harpsichord — 羽管键琴",
+            "Pan Flute — 排箫",
+            "Trumpet — 小号",
+            "Vibraphone — 颤音琴",
+            "Tutti Orchestra — 全奏乐团",
+        ]
+
         # ---- inst ----
         if cmd == "inst":
             if len(parts) < 2:
-                print(f"  当前乐器: #{inst}")
-                print("  用法: inst <0-15>  如 inst 3")
+                print(f"\n  当前乐器: #{inst} — {PRESET_NAMES[inst]}")
+                print("  0-15 乐器列表:")
+                for i, name in enumerate(PRESET_NAMES):
+                    mark = " ←" if i == inst else ""
+                    print(f"    {i:2d}: {name}{mark}")
+                print("\n  用法: inst <0-15>  如 inst 3")
                 continue
             try:
                 p = int(parts[1])

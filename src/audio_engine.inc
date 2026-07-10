@@ -43,12 +43,22 @@ static inline void updateEnvelope(Envelope &env) {
         env.level += env.delta;
         if (env.level >= 1.0f) {
             env.level = 1.0f;
-            if (env.sustain) {
+            if (env.sustain && env.sustainLv < 1.0f) {
+                env.state = ENV_DECAY;
+                env.delta = env.decayDelta;
+            } else if (env.sustain) {
+                env.level = env.sustainLv;
                 env.state = ENV_SUSTAIN;
             } else {
-                env.state  = ENV_RELEASE;
-                env.delta  = env.releaseDelta;
+                env.state = ENV_RELEASE;
+                env.delta = env.releaseDelta;
             }
+        }
+    } else if (env.state == ENV_DECAY) {
+        env.level += env.delta;  // delta 为负数 (下降至 sustainLv)
+        if (env.level <= env.sustainLv) {
+            env.level = env.sustainLv;
+            env.state = ENV_SUSTAIN;
         }
     } else if (env.state == ENV_RELEASE) {
         env.level += env.delta;  // delta 为负数
@@ -130,15 +140,23 @@ static void initOscVoice(OscVoice &osc, const OscParams &params, float baseFreq,
     osc.lp2_state    = 0.0f;
 
     // 包络初始化
-    osc.env.level  = 0.0f;
-    osc.env.state  = ENV_ATTACK;
-    osc.env.sustain = params.sustain;
+    osc.env.level     = 0.0f;
+    osc.env.state     = ENV_ATTACK;
+    osc.env.sustain   = params.sustain;
+    osc.env.sustainLv = params.sustainLv;
     // delta = 1.0 / (attack_ms * 44.1), 最小 1ms 防除零
     uint16_t atk = (params.attack_ms < 1) ? 1 : params.attack_ms;
     osc.env.attackDelta = 1.0f / (atk * 44.1f);
     osc.env.delta       = osc.env.attackDelta;
+    // Decay delta: 从 1.0 降至 sustainLv
+    if (params.decayTime > 0 && params.sustainLv < 1.0f) {
+        osc.env.decayDelta = (params.sustainLv - 1.0f) / (params.decayTime * 44.1f);
+    } else {
+        osc.env.decayDelta = 0.0f;
+    }
+    // Release delta: 从 sustainLv 降至 0
     uint16_t rel = (params.release_ms < 1) ? 1 : params.release_ms;
-    osc.env.releaseDelta = -1.0f / (rel * 44.1f);
+    osc.env.releaseDelta = -params.sustainLv / (rel * 44.1f);
 }
 
 // ---------- Voice 分配 ----------
@@ -148,7 +166,7 @@ static int8_t allocateVoice(uint8_t note, uint8_t velocity) {
         if (voices[i].active && voices[i].note == note) {
             for (int j = 0; j < 2; j++) {
                 Envelope &env = (j == 0) ? voices[i].osc1.env : voices[i].osc2.env;
-                if (env.state == ENV_ATTACK || env.state == ENV_SUSTAIN) {
+                if (env.state == ENV_ATTACK || env.state == ENV_DECAY || env.state == ENV_SUSTAIN) {
                     env.state = ENV_RELEASE;
                     env.delta = env.releaseDelta;
                 }
@@ -212,6 +230,10 @@ static void applyParam(uint8_t id, float val) {
         case PARAM_O2_SUSTAIN:  currentPreset.osc2.sustain    = (val > 0.0f);  break;
         case PARAM_O1_RELEASE:  currentPreset.osc1.release_ms = (uint16_t)val; break;
         case PARAM_O2_RELEASE:  currentPreset.osc2.release_ms = (uint16_t)val; break;
+        case PARAM_O1_DECAY_TIME: currentPreset.osc1.decayTime = (uint16_t)val; break;
+        case PARAM_O2_DECAY_TIME: currentPreset.osc2.decayTime = (uint16_t)val; break;
+        case PARAM_O1_SUSTAIN_LV: currentPreset.osc1.sustainLv = val;           break;
+        case PARAM_O2_SUSTAIN_LV: currentPreset.osc2.sustainLv = val;           break;
         case PARAM_O1_VOLUME:   currentPreset.osc1.volume     = val;           break;
         case PARAM_O2_VOLUME:   currentPreset.osc2.volume     = val;           break;
         case PARAM_O1_PITCHMUL: currentPreset.osc1.pitchMul   = val;           break;
@@ -244,14 +266,16 @@ void printAudioStatus() {
         }
     };
     Serial.println(F("\n===== 当前参数 ====="));
-    Serial.printf("  OSC1: %s  atk=%d  sus=%d  rel=%d  vol=%.2f  pm=%.3f  f1=%d  f2=%d\n",
+    Serial.printf("  OSC1: %s  atk=%d  sus=%d  dec=%d  susLv=%.2f  rel=%d  vol=%.2f  pm=%.3f  f1=%d  f2=%d\n",
         wn(currentPreset.osc1.waveform), currentPreset.osc1.attack_ms,
-        currentPreset.osc1.sustain, currentPreset.osc1.release_ms,
+        currentPreset.osc1.sustain, currentPreset.osc1.decayTime,
+        currentPreset.osc1.sustainLv, currentPreset.osc1.release_ms,
         currentPreset.osc1.volume, currentPreset.osc1.pitchMul,
         currentPreset.osc1.useFilter1, currentPreset.osc1.useFilter2);
-    Serial.printf("  OSC2: %s  atk=%d  sus=%d  rel=%d  vol=%.2f  pm=%.3f  f1=%d  f2=%d\n",
+    Serial.printf("  OSC2: %s  atk=%d  sus=%d  dec=%d  susLv=%.2f  rel=%d  vol=%.2f  pm=%.3f  f1=%d  f2=%d\n",
         wn(currentPreset.osc2.waveform), currentPreset.osc2.attack_ms,
-        currentPreset.osc2.sustain, currentPreset.osc2.release_ms,
+        currentPreset.osc2.sustain, currentPreset.osc2.decayTime,
+        currentPreset.osc2.sustainLv, currentPreset.osc2.release_ms,
         currentPreset.osc2.volume, currentPreset.osc2.pitchMul,
         currentPreset.osc2.useFilter1, currentPreset.osc2.useFilter2);
     Serial.printf("  HPF: fc=%.0fHz  int=%.2f\n", currentPreset.filter1.fc, currentPreset.filter1.intensity);
@@ -290,7 +314,7 @@ static void noteOff(uint8_t note) {
         // 对两个振荡器触发 Release
         for (int j = 0; j < 2; j++) {
             Envelope &env = (j == 0) ? voices[i].osc1.env : voices[i].osc2.env;
-            if (env.state == ENV_ATTACK || env.state == ENV_SUSTAIN) {
+            if (env.state == ENV_ATTACK || env.state == ENV_DECAY || env.state == ENV_SUSTAIN) {
                 env.state  = ENV_RELEASE;
                 env.delta  = env.releaseDelta;
             }

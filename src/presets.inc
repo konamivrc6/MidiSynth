@@ -8,8 +8,8 @@
 
 /*
  * 预设结构 (定义于 config.cpp):
- *   OscParams { waveform(0-5), attack_ms, sustain, release_ms, volume(0-1),
- *               pitchMul, useFilter1, useFilter2 }
+ *   OscParams { waveform(0-5), attack_ms, sustain, decayTime, sustainLv,
+ *               release_ms, volume(0-1), pitchMul, useFilter1, useFilter2 }
  *   FilterParams { fc(Hz), intensity(0-1) }
  *   Preset { OscParams osc1; OscParams osc2; FilterParams filter1; FilterParams filter2; }
  *
@@ -28,8 +28,8 @@ const Preset presets[16] = {
     // 0: Grand Piano — 明亮钢琴
     // ============================================================
     {
-        { WAVE_SINE, 10, true,  200, 0.80f, PM1,  false, true  },  // osc1
-        { WAVE_TRI,  30, true,  400, 0.40f, PM1,  false, true  },  // osc2
+        { WAVE_SINE, 10, true, 500, 0.25f, 200, 0.80f, PM1,  false, true  },  // osc1
+        { WAVE_TRI,  30, true, 700, 0.30f, 400, 0.40f, PM1,  false, true  },  // osc2
         { 2000, 0.5f },   // filter1: HP, 轻微去低频
         { 8000, 0.35f }    // filter2: LP, 轻微柔化高频
     },
@@ -38,8 +38,8 @@ const Preset presets[16] = {
     // 1: Warm Strings — 温暖弦乐
     // ============================================================
     {
-        { WAVE_SAW,  80, true,  500, 0.70f, PM1,  false, true  },
-        { WAVE_SAW, 100, true,  600, 0.45f, PM1,  false, true  },
+        { WAVE_SAW,  80, true,  0, 1.0f, 500, 0.70f, PM1,  false, true  },
+        { WAVE_SAW, 100, true,  0, 1.0f, 600, 0.45f, PM1,  false, true  },
         { 150,  0.3f  },   // HP: 轻微去除次声频
         { 3500, 0.75f }    // LP: 大幅柔化
     },
@@ -48,8 +48,8 @@ const Preset presets[16] = {
     // 2: Synth Brass — 合成铜管
     // ============================================================
     {
-        { WAVE_SAW,       25, true, 150, 0.85f, PM1,  false, true  },
-        { WAVE_PULSE_1_2, 35, true, 200, 0.55f, PM1,  false, true  },
+        { WAVE_SAW,       25, true,  80, 0.85f, 150, 0.85f, PM1,  false, true  },
+        { WAVE_PULSE_1_2, 35, true, 100, 0.80f, 200, 0.55f, PM1,  false, true  },
         { 200, 0.35f },
         { 5000, 0.45f }
     },
@@ -58,8 +58,8 @@ const Preset presets[16] = {
     // 3: Dream Pad — 梦幻铺底
     // ============================================================
     {
-        { WAVE_SINE, 200, true, 900, 0.60f, PM1,  false, true  },
-        { WAVE_TRI,  250, true, 800, 0.55f, PM05, false, true  },  // 低八度
+        { WAVE_SINE, 200, true,  0, 1.0f, 900, 0.60f, PM1,  false, true  },
+        { WAVE_TRI,  250, true,  0, 1.0f, 800, 0.55f, PM05, false, true  },  // 低八度
         { 100, 0.4f  },
         { 1800, 0.85f }
     },
@@ -68,8 +68,8 @@ const Preset presets[16] = {
     // 4: Pluck Bass — 拨弦贝斯
     // ============================================================
     {
-        { WAVE_TRI,        5, false, 120, 1.00f, PM1,  false, true },
-        { WAVE_SAW,        8, false,  80, 0.25f, PM05, false, true }, // 低八度
+        { WAVE_TRI,        5, false,  0, 1.0f, 120, 1.00f, PM1,  false, true },
+        { WAVE_SAW,        8, false,  0, 1.0f,  80, 0.25f, PM05, false, true }, // 低八度
         { 80,  0.3f },
         { 1200, 0.70f }
     },
@@ -78,8 +78,8 @@ const Preset presets[16] = {
     // 5: FM Bell — 调频钟铃
     // ============================================================
     {
-        { WAVE_SINE,  2, false, 700, 0.80f, PM1,  true,  true  },
-        { WAVE_SINE,  3, false, 500, 0.55f, PM2,  false, true  },  // 高八度泛音
+        { WAVE_SINE,  2, false,  0, 1.0f, 700, 0.80f, PM1,  true,  true  },
+        { WAVE_SINE,  3, false,  0, 1.0f, 500, 0.55f, PM2,  false, true  },  // 高八度泛音
         { 600,  0.50f },   // HP: 去低频, 突出金属感
         { 8000, 0.30f }
     },
@@ -88,8 +88,8 @@ const Preset presets[16] = {
     // 6: Accordion — 手风琴
     // ============================================================
     {
-        { WAVE_PULSE_1_2, 40, true, 60, 0.90f, PM1,  false, false },
-        { WAVE_PULSE_1_4, 50, true, 50, 0.70f, PM1,  false, false },
+        { WAVE_PULSE_1_2, 40, true,  0, 1.0f, 60, 0.90f, PM1,  false, false },
+        { WAVE_PULSE_1_4, 50, true,  0, 1.0f, 50, 0.70f, PM1,  false, false },
         { 50,  0.1f  },   // 几乎不过滤
         { 20000, 0.05f }
     },
@@ -98,8 +98,8 @@ const Preset presets[16] = {
     // 7: Lead Saw — 主音锯齿
     // ============================================================
     {
-        { WAVE_SAW,       15, true, 120, 0.90f, PM1,  false, true  },
-        { WAVE_PULSE_1_8, 20, true, 100, 0.35f, PM1,  false, true  },
+        { WAVE_SAW,       15, true,  0, 1.0f, 120, 0.90f, PM1,  false, true  },
+        { WAVE_PULSE_1_8, 20, true,  0, 1.0f, 100, 0.35f, PM1,  false, true  },
         { 120, 0.25f },
         { 4500, 0.55f }
     },
@@ -108,8 +108,8 @@ const Preset presets[16] = {
     // 8: Crystal — 水晶音色
     // ============================================================
     {
-        { WAVE_SINE, 120, true, 1100, 0.70f, PM1,  false, true },
-        { WAVE_TRI,  100, true, 1000, 0.60f, PM15, false, true },  // 五度泛音
+        { WAVE_SINE, 120, true, 300, 0.50f, 1100, 0.70f, PM1,  false, true },
+        { WAVE_TRI,  100, true, 350, 0.45f, 1000, 0.60f, PM15, false, true },  // 五度泛音
         { 350, 0.40f },
         { 2800, 0.65f }
     },
@@ -118,8 +118,8 @@ const Preset presets[16] = {
     // 9: VRC6 Pluse Pluck — VRC6 方波弹拨
     // ============================================================
     {
-        { WAVE_PULSE_1_8,  5, false,  90, 0.90f, PM1, false, true },
-        { WAVE_PULSE_1_4,  5, false,  70, 0.45f, PM1, false, true },
+        { WAVE_PULSE_1_8,  5, false,  0, 1.0f,  90, 0.90f, PM1, false, true },
+        { WAVE_PULSE_1_4,  5, false,  0, 1.0f,  70, 0.45f, PM1, false, true },
         { 150, 0.15f },
         { 6500, 0.35f }
     },
@@ -128,8 +128,8 @@ const Preset presets[16] = {
     // 10: Deep Bass — 深低音
     // ============================================================
     {
-        { WAVE_SAW,  8, true, 250, 1.00f, PM1,  false, true },
-        { WAVE_SINE, 5, true, 200, 0.45f, PM05, false, true },  // 低八度
+        { WAVE_SAW,  8, true,  0, 1.0f, 250, 1.00f, PM1,  false, true },
+        { WAVE_SINE, 5, true,  0, 1.0f, 200, 0.45f, PM05, false, true },  // 低八度
         { 40,  0.2f },
         { 700, 0.85f }
     },
@@ -138,8 +138,8 @@ const Preset presets[16] = {
     // 11: Harpsichord — 羽管键琴
     // ============================================================
     {
-        { WAVE_PULSE_1_2,  3, false, 140, 0.80f, PM1, false, true },
-        { WAVE_PULSE_1_8,  3, false, 100, 0.55f, PM2, false, true },  // 高八度
+        { WAVE_PULSE_1_2,  3, false,  0, 1.0f, 140, 0.80f, PM1, false, true },
+        { WAVE_PULSE_1_8,  3, false,  0, 1.0f, 100, 0.55f, PM2, false, true },  // 高八度
         { 100, 0.10f },
         { 7000, 0.25f }
     },
@@ -148,8 +148,8 @@ const Preset presets[16] = {
     // 12: Pan Flute — 排箫
     // ============================================================
     {
-        { WAVE_SINE, 70, true, 350, 0.85f, PM1,  false, true  },
-        { WAVE_SINE, 90, true, 400, 0.15f, PM1,  false, true  },
+        { WAVE_SINE, 70, true,  0, 1.0f, 350, 0.85f, PM1,  false, true  },
+        { WAVE_SINE, 90, true,  0, 1.0f, 400, 0.15f, PM1,  false, true  },
         { 250, 0.35f },    // HP: 去低频呼吸声
         { 3500, 0.55f }
     },
@@ -158,8 +158,8 @@ const Preset presets[16] = {
     // 13: Trumpet — 小号
     // ============================================================
     {
-        { WAVE_SAW,       20, true, 130, 0.90f, PM1, false, true },
-        { WAVE_PULSE_1_2, 25, true, 150, 0.50f, PM1, false, true },
+        { WAVE_SAW,       20, true,  60, 0.88f, 130, 0.90f, PM1, false, true },
+        { WAVE_PULSE_1_2, 25, true,  80, 0.85f, 150, 0.50f, PM1, false, true },
         { 180, 0.35f },
         { 6500, 0.35f }
     },
@@ -168,8 +168,8 @@ const Preset presets[16] = {
     // 14: Vibraphone — 颤音琴
     // ============================================================
     {
-        { WAVE_SINE,  5, true, 1800, 0.75f, PM1, false, true },
-        { WAVE_TRI,   8, true, 1400, 0.40f, PM2, false, true },  // 高八度泛音
+        { WAVE_SINE,  5, true, 600, 0.40f, 1800, 0.75f, PM1, false, true },
+        { WAVE_TRI,   8, true, 700, 0.35f, 1400, 0.40f, PM2, false, true },  // 高八度泛音
         { 80,  0.25f },
         { 5000, 0.45f }
     },
@@ -178,8 +178,8 @@ const Preset presets[16] = {
     // 15: Tutti Orchestra — 全奏乐团
     // ============================================================
     {
-        { WAVE_SAW, 120, true, 550, 0.80f, PM1,  false, true },
-        { WAVE_TRI, 150, true, 600, 0.55f, PM1,  false, true },
+        { WAVE_SAW, 120, true,  0, 1.0f, 550, 0.80f, PM1,  false, true },
+        { WAVE_TRI, 150, true,  0, 1.0f, 600, 0.55f, PM1,  false, true },
         { 80,  0.30f },
         { 4500, 0.55f }
     }
