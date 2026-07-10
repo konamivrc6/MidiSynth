@@ -39,7 +39,7 @@ wavetables/
 ├── wavetables.h       # 分层波表常量与接口声明
 ├── wavetables.inc     # 自动生成的抗混叠波表数据（2048×11×6）
 └── generate_wavetables.py  # 波表生成脚本
-concat.py              # 拼接脚本（按顺序合并 6 个 .inc → 单一 .cpp）
+build.py               # 构建脚本（拼接 .inc → 单一 .cpp + 同步 config.h → .ino）
 MidiSynth.ino          # Arduino 主文件（setup / loop / 串口命令）
 ```
 
@@ -59,17 +59,18 @@ MidiSynth.ino          # Arduino 主文件（setup / loop / 串口命令）
 ## 构建
 
 1. 修改 `src/` 下的源文件
-2. 运行拼接脚本：
+2. 运行构建脚本：
 
 ```bash
-python concat.py                # 输出 MidiSynth_combined.cpp
-python concat.py -o out.cpp     # 输出到指定文件
+python build.py                # 输出 MidiSynth_combined.cpp + 同步 config.h → .ino
+python build.py -o out.cpp     # 输出到指定文件
+python build.py --no-sync      # 仅拼接，不同步 .ino
 ```
 
 3. 将 `MidiSynth.ino` 和 `MidiSynth_combined.cpp` 放在同一 Arduino 工程目录下
 4. 用 Arduino IDE 编译上传
 
-> **注意**：`.ino` 文件重复了部分 `#define` 和类型定义（因为它是独立编译单元）。修改 `config.h` 中的常量/枚举时，需同步更新 `.ino` 中对应的定义。
+> **注意**：`build.py` 会自动将 `config.h` 中 `#define`/`enum`/`struct` 定义同步到 `.ino` 文件（匹配带有"(与 config.h 同步)"标记的区段）。修改 `config.h` 后运行 `build.py` 即可，无需手动同步。
 
 ## 使用
 

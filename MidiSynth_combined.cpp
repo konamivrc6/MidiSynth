@@ -1,7 +1,7 @@
 /*
  * MidiSynth_combined.cpp — 自动生成的拼接文件
  *
- * 由 concat.py 生成，请勿手动编辑。
+ * 由 build.py 生成，请勿手动编辑。
  * 拼接顺序: config.inc  mcp23017.inc  presets.inc  wavetables.inc  audio_engine.inc  usb_midi.inc
  *
  * 将此文件与 MidiSynth.ino 放在同一 Arduino 工程目录下。
@@ -8234,10 +8234,10 @@ void audio_task(void *param) {
             }
 
             Serial.printf("[Perf] 预算=%.0fus | 用时: 最小=%lu 平均=%.0f 最大=%lu us | CPU=%.1f%% | "
-                          "活跃=%d/12 | "
+                          "活跃=%d/%d | "
                           "推算最大复音≈%.0f\n",
                           BUDGET_US, perfMin, avgUs, perfMax, cpuPct,
-                          activeVoices,
+                          activeVoices, MAX_POLYPHONY,
                           maxVoices);
 
             // 如果实测接近预算, 发出警告

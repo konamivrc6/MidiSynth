@@ -469,10 +469,10 @@ void audio_task(void *param) {
             }
 
             Serial.printf("[Perf] 预算=%.0fus | 用时: 最小=%lu 平均=%.0f 最大=%lu us | CPU=%.1f%% | "
-                          "活跃=%d/12 | "
+                          "活跃=%d/%d | "
                           "推算最大复音≈%.0f\n",
                           BUDGET_US, perfMin, avgUs, perfMax, cpuPct,
-                          activeVoices,
+                          activeVoices, MAX_POLYPHONY,
                           maxVoices);
 
             // 如果实测接近预算, 发出警告

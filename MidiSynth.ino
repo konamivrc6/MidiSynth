@@ -23,7 +23,7 @@
 // 本板 Serial=USB CDC, Serial0=CP2102 UART, 用宏统一映射
 #define Serial Serial0
 
-// ======================== 引脚定义 (与 config.cpp 同步) ========================
+// ======================== 引脚定义 (与 config.h 同步) ========================
 #define PIN_I2C_SCL      48
 #define PIN_I2C_SDA      21
 #define PIN_I2S_BCK       4
@@ -32,19 +32,19 @@
 #define PIN_ADC_VOLUME    7
 #define PIN_MCP_INTA     13
 
-// ======================== 音频参数 (与 config.cpp 同步) ========================
+// ======================== 音频参数 (与 config.h 同步) ========================
 #define SAMPLE_RATE       44100
 #define BUFFER_FRAMES      256
 #define MAX_POLYPHONY       12
 #define MIDI_QUEUE_SIZE     32
 #define PARAM_QUEUE_SIZE    16
 
-// ======================== MCP23017 开关映射 (与 config.cpp 同步) ========================
+// ======================== MCP23017 开关映射 (与 config.h 同步) ========================
 #define MCP_SW_MASK       0x3C
 #define MCP_SW_SHIFT         2
 #define MCP_BTN_MASK      0x40
 
-// ======================== 消息类型 (与 config.cpp 同步) ========================
+// ======================== 消息类型 (与 config.h 同步) ========================
 enum MsgType : uint8_t {
     MSG_NOTE_ON     = 0,
     MSG_NOTE_OFF    = 1,
@@ -57,7 +57,7 @@ struct MidiMsg {
     uint8_t data2;
 };
 
-// ======================== 参数 ID (与 config.cpp 同步) ========================
+// ======================== 参数 ID (与 config.h 同步) ========================
 enum ParamId : uint8_t {
     PARAM_O1_WAVEFORM = 0,
     PARAM_O2_WAVEFORM,
