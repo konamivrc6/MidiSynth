@@ -35,7 +35,7 @@
 // ======================== 音频参数 (与 config.cpp 同步) ========================
 #define SAMPLE_RATE       44100
 #define BUFFER_FRAMES      256
-#define MAX_POLYPHONY       16
+#define MAX_POLYPHONY       12
 #define MIDI_QUEUE_SIZE     32
 #define PARAM_QUEUE_SIZE    16
 

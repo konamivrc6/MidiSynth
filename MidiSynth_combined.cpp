@@ -8172,6 +8172,14 @@ void audio_task(void *param) {
     // 加载默认预设
     loadPreset(0);
 
+    // 性能测量变量
+    const float BUDGET_US = (float)BUFFER_FRAMES / SAMPLE_RATE * 1e6f;  // 缓冲区时间预算 (微秒)
+    uint32_t perfMin   = UINT32_MAX;
+    uint32_t perfMax   = 0;
+    float    perfSum   = 0.0f;
+    uint32_t perfCount = 0;
+    uint32_t lastReport = 0;
+
     while (1) {
         // 1. 处理 MIDI 消息 (非阻塞)
         MidiMsg msg;
@@ -8199,9 +8207,53 @@ void audio_task(void *param) {
             applyParam(pc.param_id, pc.value);
         }
 
-        // 3. 生成音频
+        // 3. 生成音频 + 计时
         float vol = readVolume();
+        int64_t t0 = esp_timer_get_time();
         processAudio(audioBuf, BUFFER_FRAMES, vol);
+        int64_t t1 = esp_timer_get_time();
+        uint32_t elapsed = (uint32_t)(t1 - t0);
+
+        // 累积统计数据
+        if (elapsed < perfMin) perfMin = elapsed;
+        if (elapsed > perfMax) perfMax = elapsed;
+        perfSum += (float)elapsed;
+        perfCount++;
+
+        // 每 2 秒打印一次性能报告
+        if (t1 - lastReport > 2000000) {
+            lastReport = t1;
+            float avgUs   = perfSum / (float)perfCount;
+            float cpuPct  = perfMax / BUDGET_US * 100.0f;
+            float maxVoices = (float)MAX_POLYPHONY * BUDGET_US / (float)perfMax;
+
+            // 统计当前活跃 Voice 数
+            int activeVoices = 0;
+            for (int i = 0; i < MAX_POLYPHONY; i++) {
+                if (voices[i].active) activeVoices++;
+            }
+
+            Serial.printf("[Perf] 预算=%.0fus | 用时: 最小=%lu 平均=%.0f 最大=%lu us | CPU=%.1f%% | "
+                          "活跃=%d/12 | "
+                          "推算最大复音≈%.0f\n",
+                          BUDGET_US, perfMin, avgUs, perfMax, cpuPct,
+                          activeVoices,
+                          maxVoices);
+
+            // 如果实测接近预算, 发出警告
+            if (cpuPct > 80.0f) {
+                Serial.println("[Perf] ⚠ 警告: CPU 占用率超过 80%, 可能出现断音!");
+            }
+            if (elapsed >= BUDGET_US) {
+                Serial.println("[Perf] 🔴 严重: 处理时间超过缓冲区预算, 已出现 xrun!");
+            }
+
+            // 重置统计窗口
+            perfMin   = UINT32_MAX;
+            perfMax   = 0;
+            perfSum   = 0.0f;
+            perfCount = 0;
+        }
 
         // 4. 通过 I2S 输出 (阻塞直到 DMA 就绪)
         size_t written;

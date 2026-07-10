@@ -185,26 +185,51 @@ def output_to_serial(commands, port, baud):
 
 
 def send_via_serial(commands, port, baud):
-    """通过串口实时发送命令。"""
+    """通过串口实时发送命令，同时打印设备返回的性能测量信息。"""
+    import threading
+
     try:
         import serial
     except ImportError:
         print("[错误] 需要安装 pyserial: pip install pyserial", file=sys.stderr)
         sys.exit(1)
 
-    ser = serial.Serial(port, baud, timeout=1)
+    ser = serial.Serial(port, baud, timeout=0.1)
     print(f"[串口] {port} @ {baud} 已连接")
     print(f"[提示] 按 Ctrl+C 停止")
+
+    # 后台读取串口返回数据，仅打印 [Perf] 行
+    reader_stop = threading.Event()
+
+    def serial_reader():
+        buf = b""
+        while not reader_stop.is_set():
+            try:
+                raw = ser.read(256)
+                if raw:
+                    buf += raw
+                    while b"\n" in buf:
+                        line, buf = buf.split(b"\n", 1)
+                        text = line.decode("utf-8", errors="replace").strip()
+                        if "[Perf]" in text:
+                            print(f"\r{text}")
+                else:
+                    time.sleep(0.05)
+            except Exception:
+                break
+
+    reader_thread = threading.Thread(target=serial_reader, daemon=True)
+    reader_thread.start()
 
     cmd_count = 0
     last_sec = 0.0
 
     def send(cmd):
         line = cmd + "\n"
-        ser.write(line.encode('utf-8'))
+        ser.write(line.encode("utf-8"))
 
     def all_notes_off():
-        for _ in range(2):  # 发送两次以确保所有音符关闭
+        for _ in range(2):
             for n in range(128):
                 send(f"off {n}")
                 time.sleep(0.005)
@@ -218,14 +243,23 @@ def send_via_serial(commands, port, baud):
             send(cmd)
             cmd_count += 1
 
-            if cmd_count % 100 == 0:
-                print(f"\r  已发送 {cmd_count} 条, 当前时间 {last_sec:.1f}s", end='')
+            # if cmd_count % 100 == 0:
+            #     print(f"\r  已发送 {cmd_count} 条, 当前时间 {last_sec:.1f}s", end="")
+
+        # 播放完毕，等待后续性能报告 (约 1 ~ 2 个报告周期)
+        print(f"\n[完成] 已发送 {cmd_count} 条命令, 等待性能报告...")
+        for remaining in range(8, 0, -1):
+            print(f"\r  继续监听 {remaining}s (Ctrl+C 提前退出)", end="")
+            time.sleep(1)
+        print()
 
     except KeyboardInterrupt:
-        print(f"\n[停止] 已发送 {cmd_count} 条命令")
+        print(f"\n[停止] 发送 {cmd_count} 条后中断")
     finally:
-        print("\r  发送 All Notes Off...")
+        reader_stop.set()
+        print("  发送 All Notes Off...")
         all_notes_off()
+        reader_thread.join(timeout=1)
         ser.close()
         print("[串口] 已关闭")
 

@@ -1,6 +1,6 @@
 # MidiSynth — ESP32-S3 MIDI 合成器
 
-基于 ESP32-S3 的 16 复音双振荡器合成器，支持 USB MIDI 键盘输入、4 个硬件开关切换音色、串口实时调参。
+基于 ESP32-S3 的 12 复音双振荡器合成器，支持 USB MIDI 键盘输入、4 个硬件开关切换音色、串口实时调参。
 
 ## 硬件
 
@@ -49,7 +49,7 @@ MidiSynth.ino          # Arduino 主文件（setup / loop / 串口命令）
 - **6 种波形**：Sine、Triangle、Pulse 1/8、Pulse 1/4、Pulse 1/2、Saw
 - **ADSR 包络**：Attack / Decay / Sustain / Release，可独立配置 Attack 时间、Decay 时间、Sustain Level、Sustain 开关、Release 时间
 - **双滤波器**：Filter1 高通 + Filter2 低通，一阶 IIR，可独立配置截止频率和强度
-- **16 复音**：带智能 Voice 分配策略（同音符触发 Release → 空闲 → 衰减中 → 最早触发）
+- **12 复音**：带智能 Voice 分配策略（同音符触发 Release → 空闲 → 衰减中 → 最早触发）
 
 ## 依赖库
 
