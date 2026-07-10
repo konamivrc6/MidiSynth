@@ -14,6 +14,7 @@ play_midi.py — MIDI 文件播放器 (MidiSynth 交互前端)
   inst <0-15>   设置乐器 (如: inst 3)
   stop           发送 All Notes Off (紧急静音)
   repeat <N> [次] 循环播放, 如 repeat 0 5  (次数省略则无限)
+  /<任意命令>    直接发送原始串口命令并显示回复 (如 /status)
   help           显示帮助
   quit / q       退出
 """
@@ -21,7 +22,9 @@ play_midi.py — MIDI 文件播放器 (MidiSynth 交互前端)
 import os
 import re
 import sys
+import time
 import subprocess
+import serial
 import serial.tools.list_ports
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -69,6 +72,7 @@ def print_help():
   inst [0-15]设置或查看乐器, 如: inst 3
   stop         发送 All Notes Off (紧急静音)
   repeat <N> [次] 循环播放, 如 repeat 0 5
+  /<任意命令>   直接发送原始串口命令并显示回复 (如 /status)
   help         显示此帮助
   quit / q     退出
 ========================""")
@@ -96,6 +100,21 @@ def play_file(idx, files, port, tempo, transpose, inst):
     except KeyboardInterrupt:
         print("\n  [已中断]")
         return False
+
+
+def send_raw_command(port, cmd):
+    """通过串口发送原始命令，监听 0.2s 后返回回复。"""
+    try:
+        ser = serial.Serial(f"COM{port}", 115200, timeout=0.1)
+        ser.write((cmd + "\n").encode("utf-8"))
+        time.sleep(0.2)
+        resp = b""
+        while ser.in_waiting:
+            resp += ser.read(ser.in_waiting)
+        ser.close()
+        return resp.decode("utf-8", errors="replace").strip()
+    except Exception as e:
+        return f"[串口错误] {e}"
 
 
 def main():
@@ -337,6 +356,46 @@ def main():
         if cmd in ("quit", "q", "exit"):
             print("  再见!")
             break
+
+        # ---- / 原始串口命令 ----
+        if raw.startswith("/"):
+            serial_cmd = raw[1:].strip()
+            if not serial_cmd:
+                print("""
+  串口命令参考 (115200 baud):
+
+  note  <0-127> [vel=100]  — Note On (vel=0 即 Note Off)
+  off   <0-127>            — Note Off
+  preset <0-15>            — 加载预设
+
+  --- 振荡器参数 ---
+  o1wave <0-5>  o2wave <0-5>  — 波形: 0=Sine 1=Tri 2=P1/8 3=P1/4 4=P1/2 5=Saw
+  o1atk  <ms>    o2atk  <ms>   — Attack 时间 (ms)
+  o1sus  <0|1>   o2sus  <0|1>  — Sustain 开关
+  o1dec  <ms>    o2dec  <ms>   — Decay 时间 (ms)
+  o1slv  <0-1>   o2slv  <0-1>  — Sustain Level
+  o1rel  <ms>    o2rel  <ms>   — Release 时间 (ms)
+  o1vol  <0-1>   o2vol  <0-1>  — 音量
+  o1pm   <f>     o2pm   <f>    — 音高倍数 (2.0, 1.5, 1.0, 0.667, 0.5)
+  o1f1   <0|1>   o1f2   <0|1>  — OSC1 经 Filter1/2 路由
+  o2f1   <0|1>   o2f2   <0|1>  — OSC2 经 Filter1/2 路由
+
+  --- 滤波器参数 ---
+  hpfc <Hz>  hpfi <0-1>    — 高通截止频率 / 强度
+  lpfc <Hz>  lpfi <0-1>    — 低通截止频率 / 强度
+
+  --- 其他 ---
+  status                    — 打印当前参数
+  help                      — 显示帮助""")
+                continue
+            if port is None:
+                print("  请先设置串口: port <COM号>")
+                continue
+            print(f"  → {serial_cmd}")
+            resp = send_raw_command(port, serial_cmd)
+            if resp:
+                print(resp)
+            continue
 
         # ---- 数字 → 播放 ----
         try:

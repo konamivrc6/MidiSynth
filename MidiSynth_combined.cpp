@@ -123,8 +123,8 @@ const Preset presets[16] = {
     // 0: Grand Piano — 明亮钢琴
     // ============================================================
     {
-        { WAVE_SINE, 10, true, 500, 0.25f, 200, 0.80f, PM1,  false, true  },  // osc1
-        { WAVE_TRI,  30, true, 700, 0.30f, 400, 0.40f, PM1,  false, true  },  // osc2
+        { WAVE_SINE, 10, true, 300, 0.42f, 50, 0.80f, PM1,  false, true  },  // osc1
+        { WAVE_TRI,  30, true, 550, 0.60f, 100, 0.40f, PM1,  false, true  },  // osc2
         { 2000, 0.5f },   // filter1: HP, 轻微去低频
         { 8000, 0.35f }    // filter2: LP, 轻微柔化高频
     },
