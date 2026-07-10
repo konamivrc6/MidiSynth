@@ -198,6 +198,7 @@ extern float  currentFilter1_alpha;
 extern float  currentFilter2_alpha;
 
 extern volatile bool buttonISRflag;
+bool debugMode = true;
 
 extern const Preset presets[16];
 

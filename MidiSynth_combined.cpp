@@ -8022,6 +8022,7 @@ static void applyParam(uint8_t id, float val) {
 
 // ---------- 打印当前参数 (串口调试用) ----------
 void printAudioStatus() {
+    if (!debugMode) return;
     auto wn = [](int w) -> const char * {
         switch (w) {
             case 0: return "Sine"; case 1: return "Tri";
@@ -8220,8 +8221,8 @@ void audio_task(void *param) {
         perfSum += (float)elapsed;
         perfCount++;
 
-        // 每 2 秒打印一次性能报告
-        if (t1 - lastReport > 2000000) {
+        // 每 2 秒打印一次性能报告 (仅调试模式)
+        if (debugMode && t1 - lastReport > 2000000) {
             lastReport = t1;
             float avgUs   = perfSum / (float)perfCount;
             float cpuPct  = perfMax / BUDGET_US * 100.0f;
@@ -8295,7 +8296,7 @@ static void onMidiMessage(const EspUsbHostMidiMessage &msg) {
     uint8_t status = msg.status & 0xF0;  // 提取状态类型, 忽略通道
 
     // 首次收到消息时打印诊断信息
-    if (midiMsgCount == 0) {
+    if (debugMode && midiMsgCount == 0) {
         Serial.printf("[USB MIDI] 首次收到 MIDI 消息! status=0x%02X data1=%d data2=%d\n",
                       msg.status, msg.data1, msg.data2);
     }
@@ -8308,7 +8309,7 @@ static void onMidiMessage(const EspUsbHostMidiMessage &msg) {
         m.data1 = msg.data1;
         m.data2 = msg.data2;
         if (xQueueSend(midiQueue, &m, 0) != pdTRUE) {
-            Serial.println("[USB MIDI] 警告: 队列满, 消息丢弃");
+            if (debugMode) Serial.println("[USB MIDI] 警告: 队列满, 消息丢弃");
         }
     } else if (status == 0x80) {
         // Note Off
@@ -8316,7 +8317,7 @@ static void onMidiMessage(const EspUsbHostMidiMessage &msg) {
         m.data1 = msg.data1;
         m.data2 = 0;
         if (xQueueSend(midiQueue, &m, 0) != pdTRUE) {
-            Serial.println("[USB MIDI] 警告: 队列满, 消息丢弃");
+            if (debugMode) Serial.println("[USB MIDI] 警告: 队列满, 消息丢弃");
         }
     }
     // 其他 MIDI 消息 (Control Change, Program Change 等) 忽略
@@ -8326,9 +8327,11 @@ void initUSBMidi() {
     usb.onMidiMessage(onMidiMessage);
 
     if (usb.begin()) {
-        Serial.println("[USB MIDI] Host 初始化成功, 等待设备连接...");
+        if (debugMode) Serial.println("[USB MIDI] Host 初始化成功, 等待设备连接...");
     } else {
-        Serial.printf("[USB MIDI] Host 初始化失败! 错误: %s\n", usb.lastErrorName());
-        Serial.println("[USB MIDI] 可能原因: USB 模式配置冲突 (GPIO19 被占用), 或未连接设备");
+        if (debugMode) {
+            Serial.printf("[USB MIDI] Host 初始化失败! 错误: %s\n", usb.lastErrorName());
+            Serial.println("[USB MIDI] 可能原因: USB 模式配置冲突 (GPIO19 被占用), 或未连接设备");
+        }
     }
 }

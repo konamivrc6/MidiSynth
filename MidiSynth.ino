@@ -99,6 +99,7 @@ struct TaskParams {
 extern QueueHandle_t midiQueue;
 extern QueueHandle_t paramQueue;
 extern volatile bool buttonISRflag;
+extern bool debugMode;
 
 extern void initMCP23017();
 extern uint8_t readMCP23017_GPIOB();
@@ -156,6 +157,7 @@ static void printHelp() {
     Serial.println(F(" lpfc <Hz>   lpfi <0-1>     — 低通截止频率 / 强度"));
     Serial.println(F("--- 其他 ---"));
     Serial.println(F(" status                     — 打印当前参数"));
+    Serial.println(F(" debug on/off               — 切换调试模式"));
     Serial.println(F(" help                       — 显示此帮助"));
     Serial.println(F("===========================\n"));
 }
@@ -254,6 +256,21 @@ static void parseCommand(char *cmd) {
         }
     }
 
+    // ---- debug 命令 ----
+    if (strcmp(cmd, "debug") == 0) {
+        if (strcmp(arg1, "on") == 0) {
+            debugMode = true;
+            Serial.println("调试模式: 开启");
+        } else if (strcmp(arg1, "off") == 0) {
+            debugMode = false;
+            Serial.println("调试模式: 关闭");
+        } else {
+            Serial.printf("调试模式当前: %s  用法: debug on / debug off\n",
+                          debugMode ? "开启" : "关闭");
+        }
+        return;
+    }
+
     Serial.printf("未知命令: '%s'  输入 help 查看帮助\n", cmd);
 }
 
@@ -276,16 +293,16 @@ static void processSerial() {
 void setup() {
     Serial.begin(115200);
     delay(500);
-    Serial.println("\n[MidiSynth] 启动中...");
+    if (debugMode) Serial.println("\n[MidiSynth] 启动中...");
 
     // 1. 初始化 I2C
     Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
     Wire.setClock(400000);
-    Serial.println("[I2C] 已初始化");
+    if (debugMode) Serial.println("[I2C] 已初始化");
 
     // 2. 初始化 MCP23017
     initMCP23017();
-    Serial.println("[MCP23017] 已初始化");
+    if (debugMode) Serial.println("[MCP23017] 已初始化");
 
     // 3. 初始化 I2S (PCM5102, 硬件模式, Master TX)
     i2s_config_t i2s_cfg;
@@ -311,7 +328,7 @@ void setup() {
 
     i2s_driver_install(I2S_NUM_0, &i2s_cfg, 0, NULL);
     i2s_set_pin(I2S_NUM_0, &pin_cfg);
-    Serial.println("[I2S] 已初始化 (44100 Hz, 16-bit, 立体声)");
+    if (debugMode) Serial.println("[I2S] 已初始化 (44100 Hz, 16-bit, 立体声)");
 
     // 4. 创建消息队列
     midiQueue = xQueueCreate(MIDI_QUEUE_SIZE, sizeof(MidiMsg));
@@ -334,7 +351,7 @@ void setup() {
         NULL,
         1
     );
-    Serial.println("[Task] 音频任务已创建 (Core 1)");
+    if (debugMode) Serial.println("[Task] 音频任务已创建 (Core 1)");
 
     // 6. 发送初始预设加载消息
     MidiMsg initMsg;
@@ -349,17 +366,19 @@ void setup() {
     // 8. 配置 GPIO13 中断 (MCP23017 INTA, 外部 10kΩ 上拉)
     pinMode(PIN_MCP_INTA, INPUT);
     attachInterrupt(PIN_MCP_INTA, buttonISR, FALLING);
-    Serial.println("[GPIO] 中断已配置 (GPIO13, FALLING)");
+    if (debugMode) Serial.println("[GPIO] 中断已配置 (GPIO13, FALLING)");
 
     // 9. 设置 ADC 分辨率
     analogReadResolution(12);
 
-    Serial.println("[MidiSynth] 就绪!");
-    Serial.println("  四个开关: 选择预设 (0-15)");
-    Serial.println("  按钮:     加载当前开关对应的预设");
-    Serial.println("  电位器:   调节输出音量");
-    Serial.println("  右侧 USB: 连接 MIDI 键盘");
-    Serial.println("  串口:     输入 help 查看调试命令");
+    if (debugMode) {
+        Serial.println("[MidiSynth] 就绪!");
+        Serial.println("  四个开关: 选择预设 (0-15)");
+        Serial.println("  按钮:     加载当前开关对应的预设");
+        Serial.println("  电位器:   调节输出音量");
+        Serial.println("  右侧 USB: 连接 MIDI 键盘");
+        Serial.println("  串口:     输入 help 查看调试命令");
+    }
 }
 
 // ======================== loop ========================
@@ -383,8 +402,10 @@ void loop() {
                 msg.data2 = 0;
                 xQueueSend(midiQueue, &msg, 0);
 
-                Serial.print("[Preset] 加载预设 #");
-                Serial.println(sw);
+                if (debugMode) {
+                    Serial.print("[Preset] 加载预设 #");
+                    Serial.println(sw);
+                }
             }
             lastButtonTime = now;
         }

@@ -30,7 +30,7 @@ MCP23017 按钮:  GPB6
 ```
 src/
 ├── config.h           # 全局类型定义、常量、extern 声明（所有 .inc 均包含此头文件）
-├── config.inc         # 编译单元局部配置（必须最先拼接）
+├── config.inc         # 编译单元局部配置 + debugMode 定义（必须最先拼接）
 ├── mcp23017.inc       # MCP23017 I²C 驱动（初始化 + GPIOB 读取）
 ├── presets.inc        # 16 种音色预设
 ├── audio_engine.inc   # 音频引擎（波形/包络/滤波器/复音管理/I²S 输出）
@@ -50,6 +50,7 @@ MidiSynth.ino          # Arduino 主文件（setup / loop / 串口命令）
 - **ADSR 包络**：Attack / Decay / Sustain / Release，可独立配置 Attack 时间、Decay 时间、Sustain Level、Sustain 开关、Release 时间
 - **双滤波器**：Filter1 高通 + Filter2 低通，一阶 IIR，可独立配置截止频率和强度
 - **12 复音**：带智能 Voice 分配策略（同音符触发 Release → 空闲 → 衰减中 → 最早触发）
+- **调试模式**：`debugMode` 变量控制启动信息、USB MIDI 诊断、性能报告的串口输出，可通过 `debug on/off` 切换，默认开启
 
 ## 依赖库
 
@@ -155,5 +156,6 @@ lpfc <Hz>   lpfi <0-1>    — 低通截止频率 / 强度
 
 --- 其他 ---
 status                     — 打印当前参数
+debug on/off               — 切换调试模式（控制启动日志/性能报告/USB诊断等输出）
 help                       — 显示帮助
 ```

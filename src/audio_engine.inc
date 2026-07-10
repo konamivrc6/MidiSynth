@@ -257,6 +257,7 @@ static void applyParam(uint8_t id, float val) {
 
 // ---------- 打印当前参数 (串口调试用) ----------
 void printAudioStatus() {
+    if (!debugMode) return;
     auto wn = [](int w) -> const char * {
         switch (w) {
             case 0: return "Sine"; case 1: return "Tri";
@@ -455,8 +456,8 @@ void audio_task(void *param) {
         perfSum += (float)elapsed;
         perfCount++;
 
-        // 每 2 秒打印一次性能报告
-        if (t1 - lastReport > 2000000) {
+        // 每 2 秒打印一次性能报告 (仅调试模式)
+        if (debugMode && t1 - lastReport > 2000000) {
             lastReport = t1;
             float avgUs   = perfSum / (float)perfCount;
             float cpuPct  = perfMax / BUDGET_US * 100.0f;
