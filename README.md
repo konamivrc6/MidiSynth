@@ -100,7 +100,10 @@ port          列出所有可用串口
 list          刷新 MIDI 文件列表
 tempo <倍率>  播放速度倍率 (如 tempo 1.5)
 trans <半音>  移调 (如 trans 12 升八度)
-preset <0-15> 设置乐器预设
+inst <0-15>   设置乐器预设
+stop          发送 All Notes Off (紧急静音)
+repeat <N> [次] 循环播放 (如 repeat 0 5)
+/<命令>       发送原始串口命令 (如 /status)
 help          显示帮助
 quit / q      退出
 ```
