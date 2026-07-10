@@ -21,7 +21,6 @@ OUT_DIR    = SCRIPT_DIR                        # 输出到项目根目录
 # 路径相对于项目根目录 (SCRIPT_DIR)
 ORDER = [
     "src/config.inc",
-    "src/mcp23017.inc",
     "src/presets.inc",
     "wavetables/wavetables.inc",
     "src/audio_engine.inc",
@@ -273,3 +272,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    input("按 Enter 退出...")

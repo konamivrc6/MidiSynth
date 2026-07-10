@@ -1,13 +1,12 @@
 /*
  * MidiSynth.ino — MIDI 合成器主文件
- * ESP32-S3 N16R8 + MCP23017 + PCM5102 + MAX97220
+ * ESP32-S3 N16R8 + PCM5102 + LM4881
  *
  * 文件拼接顺序 (将所有 .cpp 拼接为一个文件):
  *   1. config.cpp       — 类型定义、常量、全局变量声明
- *   2. mcp23017.cpp     — MCP23017 I2C 驱动
- *   3. presets.cpp      — 16 种音色预设
- *   4. audio_engine.cpp — 音频引擎 (Voice、波形、滤波、包络)
- *   5. usb_midi.cpp     — USB MIDI Host
+ *   2. presets.cpp      — 16 种音色预设
+ *   3. audio_engine.cpp — 音频引擎 (Voice、波形、滤波、包络)
+ *   4. usb_midi.cpp     — USB MIDI Host
  *
  * 拼接后的 .cpp 与本 .ino 放在同一 Arduino 工程目录下即可。
  * 注意: 本 .ino 重复了部分 #define 和类型定义, 因为 .ino 是独立编译单元。
@@ -18,19 +17,20 @@
 #include <freertos/queue.h>
 #include <freertos/task.h>
 #include "driver/i2s.h"
-#include <Wire.h>
 
 // 本板 Serial=USB CDC, Serial0=CP2102 UART, 用宏统一映射
 #define Serial Serial0
 
 // ======================== 引脚定义 (与 config.h 同步) ========================
-#define PIN_I2C_SCL      48
-#define PIN_I2C_SDA      21
 #define PIN_I2S_BCK       4
 #define PIN_I2S_LRCK      5
 #define PIN_I2S_DIN       6
-#define PIN_ADC_VOLUME    7
-#define PIN_MCP_INTA     13
+#define PIN_ADC_VOLUME    1
+#define PIN_SW1          11
+#define PIN_SW2          12
+#define PIN_SW3          13
+#define PIN_SW4          14
+#define PIN_BUTTON       10
 
 // ======================== 音频参数 (与 config.h 同步) ========================
 #define SAMPLE_RATE       44100
@@ -40,9 +40,9 @@
 #define PARAM_QUEUE_SIZE    16
 
 // ======================== MCP23017 开关映射 (与 config.h 同步) ========================
-#define MCP_SW_MASK       0x3C
-#define MCP_SW_SHIFT         2
-#define MCP_BTN_MASK      0x40
+// 四个拨动开关 GPIO11~14, 内部上拉, 闭合=低电平
+// SW1=bit0(1), SW2=bit1(2), SW3=bit2(4), SW4=bit3(8)
+// PIN_SW1~4 已在 "引脚定义" 区段中定义
 
 // ======================== 消息类型 (与 config.h 同步) ========================
 enum MsgType : uint8_t {
@@ -101,8 +101,6 @@ extern QueueHandle_t paramQueue;
 extern volatile bool buttonISRflag;
 extern bool debugMode;
 
-extern void initMCP23017();
-extern uint8_t readMCP23017_GPIOB();
 extern void audio_task(void *param);
 extern void loadPreset(uint8_t idx);
 extern void printAudioStatus();
@@ -295,16 +293,7 @@ void setup() {
     delay(500);
     if (debugMode) Serial.println("\n[MidiSynth] 启动中...");
 
-    // 1. 初始化 I2C
-    Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
-    Wire.setClock(400000);
-    if (debugMode) Serial.println("[I2C] 已初始化");
-
-    // 2. 初始化 MCP23017
-    initMCP23017();
-    if (debugMode) Serial.println("[MCP23017] 已初始化");
-
-    // 3. 初始化 I2S (PCM5102, 硬件模式, Master TX)
+    // 1. 初始化 I2S (PCM5102, 硬件模式, Master TX)
     i2s_config_t i2s_cfg;
     memset(&i2s_cfg, 0, sizeof(i2s_cfg));
     i2s_cfg.mode                 = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX);
@@ -330,7 +319,7 @@ void setup() {
     i2s_set_pin(I2S_NUM_0, &pin_cfg);
     if (debugMode) Serial.println("[I2S] 已初始化 (44100 Hz, 16-bit, 立体声)");
 
-    // 4. 创建消息队列
+    // 2. 创建消息队列
     midiQueue = xQueueCreate(MIDI_QUEUE_SIZE, sizeof(MidiMsg));
     paramQueue = xQueueCreate(PARAM_QUEUE_SIZE, sizeof(ParamCmd));
     if (!midiQueue || !paramQueue) {
@@ -338,7 +327,7 @@ void setup() {
         return;
     }
 
-    // 5. 创建音频任务 (Core 1, 高优先级)
+    // 3. 创建音频任务 (Core 1, 高优先级)
     static TaskParams tp;
     tp.midiQueue  = midiQueue;
     tp.paramQueue = paramQueue;
@@ -353,22 +342,26 @@ void setup() {
     );
     if (debugMode) Serial.println("[Task] 音频任务已创建 (Core 1)");
 
-    // 6. 发送初始预设加载消息
+    // 4. 发送初始预设加载消息
     MidiMsg initMsg;
     initMsg.type  = MSG_LOAD_PRESET;
     initMsg.data1 = 0;
     initMsg.data2 = 0;
     xQueueSend(midiQueue, &initMsg, portMAX_DELAY);
 
-    // 7. 初始化 USB MIDI Host
+    // 5. 初始化 USB MIDI Host
     initUSBMidi();
 
-    // 8. 配置 GPIO13 中断 (MCP23017 INTA, 外部 10kΩ 上拉)
-    pinMode(PIN_MCP_INTA, INPUT);
-    attachInterrupt(PIN_MCP_INTA, buttonISR, FALLING);
-    if (debugMode) Serial.println("[GPIO] 中断已配置 (GPIO13, FALLING)");
+    // 6. 配置 GPIO 输入 (内部上拉, 闭合=低电平)
+    pinMode(PIN_SW1, INPUT_PULLUP);
+    pinMode(PIN_SW2, INPUT_PULLUP);
+    pinMode(PIN_SW3, INPUT_PULLUP);
+    pinMode(PIN_SW4, INPUT_PULLUP);
+    pinMode(PIN_BUTTON, INPUT_PULLUP);
+    attachInterrupt(PIN_BUTTON, buttonISR, FALLING);
+    if (debugMode) Serial.println("[GPIO] 中断已配置 (GPIO10, FALLING)");
 
-    // 9. 设置 ADC 分辨率
+    // 7. 设置 ADC 分辨率
     analogReadResolution(12);
 
     if (debugMode) {
@@ -392,10 +385,14 @@ void loop() {
 
         uint32_t now = millis();
         if (now - lastButtonTime > 200) {
-            uint8_t gpio = readMCP23017_GPIOB();
+            // 按钮按下=低电平 (内部上拉)
+            if (!digitalRead(PIN_BUTTON)) {
+                uint8_t sw = 0;
+                if (!digitalRead(PIN_SW1)) sw |= 1;
+                if (!digitalRead(PIN_SW2)) sw |= 2;
+                if (!digitalRead(PIN_SW3)) sw |= 4;
+                if (!digitalRead(PIN_SW4)) sw |= 8;
 
-            if (!(gpio & MCP_BTN_MASK)) {
-                uint8_t sw = (gpio & MCP_SW_MASK) >> MCP_SW_SHIFT;
                 MidiMsg msg;
                 msg.type  = MSG_LOAD_PRESET;
                 msg.data1 = sw;

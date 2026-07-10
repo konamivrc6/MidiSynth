@@ -14,13 +14,15 @@
 #include <stdint.h>
 
 // ======================== 引脚定义 ========================
-#define PIN_I2C_SCL      48
-#define PIN_I2C_SDA      21
 #define PIN_I2S_BCK       4
 #define PIN_I2S_LRCK      5
 #define PIN_I2S_DIN       6
-#define PIN_ADC_VOLUME    7
-#define PIN_MCP_INTA     13
+#define PIN_ADC_VOLUME    1
+#define PIN_SW1          11
+#define PIN_SW2          12
+#define PIN_SW3          13
+#define PIN_SW4          14
+#define PIN_BUTTON       10
 
 // ======================== 音频参数 ========================
 #define SAMPLE_RATE       44100
@@ -29,19 +31,10 @@
 #define MIDI_QUEUE_SIZE     32
 #define PARAM_QUEUE_SIZE    16
 
-// ======================== MCP23017 寄存器地址 (BANK=0) ========================
-#define MCP_ADDR          0x20
-#define MCP_IODIRB        0x01
-#define MCP_GPPUB         0x0D
-#define MCP_IOCON         0x0A
-#define MCP_GPINTENB      0x05
-#define MCP_INTCONB       0x09
-#define MCP_GPIOB         0x13
-
 // ======================== 预设开关引脚映射 ========================
-#define MCP_SW_MASK       0x3C
-#define MCP_SW_SHIFT         2
-#define MCP_BTN_MASK      0x40
+// 四个拨动开关 GPIO11~14, 内部上拉, 闭合=低电平
+// SW1=bit0(1), SW2=bit1(2), SW3=bit2(4), SW4=bit3(8)
+// PIN_SW1~4 已在 "引脚定义" 区段中定义
 
 // ======================== 波形枚举 ========================
 enum Waveform : uint8_t {
@@ -205,9 +198,6 @@ extern const Preset presets[16];
 extern uint32_t sampleCounter;
 
 // ======================== 函数声明 ========================
-void initMCP23017();
-uint8_t readMCP23017_GPIOB();
-
 void audio_task(void *param);
 void loadPreset(uint8_t idx);
 void printAudioStatus();

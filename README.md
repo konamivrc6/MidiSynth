@@ -7,23 +7,23 @@
 | 模块 | 型号 | 接口 | 说明 |
 |---|---|---|---|
 | 主控 | ESP32-S3-DevKitC-1 (N16R8) | — | 双核 FreeRTOS |
-| I/O 扩展 | MCP23017 | I²C `0x20` | 4×拨动开关 + 1×按钮 |
 | DAC | PCM5102 | I²S | 硬件模式，上电即工作 |
-| 电位器 | — | ADC GPIO7 | 主音量调节 |
+| 功放 | LM4881 | — | 纯硬件，无需代码控制 |
+| 电位器 | — | ADC GPIO1 | 主音量调节 |
+| 拨动开关 ×4 | — | GPIO11~14 | 二进制选择预设 (bit0~3) |
+| 按钮 | — | GPIO10 | 加载当前开关对应的预设 |
 
 ### 引脚连接
 
 ```
-I²C:   SCL → GPIO48,  SDA → GPIO21
 I²S:   BCK → GPIO4,   LRCK → GPIO5,  DIN → GPIO6
-ADC:   VR1 → GPIO7
-中断:  INTA → GPIO13 (来自 MCP23017)
-
-MCP23017 开关: GPB2(SW1) GPB3(SW2) GPB4(SW3) GPB5(SW4)
-MCP23017 按钮:  GPB6
+ADC:   VR1 → GPIO1
+开关:  SW1 → GPIO11 (bit0), SW2 → GPIO12 (bit1)
+       SW3 → GPIO13 (bit2), SW4 → GPIO14 (bit3)
+按钮:  BTN → GPIO10 (中断, FALLING)
 ```
 
-详细连接说明见 `元件连接关键信息.md`。
+所有开关和按钮使用 ESP32-S3 内部上拉，闭合时接 GND（低电平有效）。
 
 ## 软件架构
 
@@ -31,7 +31,6 @@ MCP23017 按钮:  GPB6
 src/
 ├── config.h           # 全局类型定义、常量、extern 声明（所有 .inc 均包含此头文件）
 ├── config.inc         # 编译单元局部配置 + debugMode 定义（必须最先拼接）
-├── mcp23017.inc       # MCP23017 I²C 驱动（初始化 + GPIOB 读取）
 ├── presets.inc        # 16 种音色预设
 ├── audio_engine.inc   # 音频引擎（波形/包络/滤波器/复音管理/I²S 输出）
 └── usb_midi.inc       # USB MIDI Host（接收外部 MIDI 键盘）
@@ -55,7 +54,7 @@ MidiSynth.ino          # Arduino 主文件（setup / loop / 串口命令）
 ## 依赖库
 
 - **EspUsbHost** (by tanakamasayuki) — USB MIDI Host
-- ESP32 Arduino Core（I²S、FreeRTOS、Wire）
+- ESP32 Arduino Core（I²S、FreeRTOS）
 
 ## 构建
 
