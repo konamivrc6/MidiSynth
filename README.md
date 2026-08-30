@@ -10,17 +10,17 @@
 | DAC | PCM5102 | I²S | 硬件模式，上电即工作 |
 | 功放 | LM4881 | — | 纯硬件，无需代码控制 |
 | 电位器 | — | ADC GPIO1 | 主音量调节 |
-| 拨动开关 ×4 | — | GPIO11~14 | 二进制选择预设 (bit0~3) |
-| 按钮 | — | GPIO10 | 加载当前开关对应的预设 |
+| 拨动开关 ×4 | — | GPIO10~13 | 二进制选择预设 (bit0~3) |
+| 按钮 | — | GPIO14 | 加载当前开关对应的预设 |
 
 ### 引脚连接
 
 ```
 I²S:   BCK → GPIO4,   LRCK → GPIO5,  DIN → GPIO6
 ADC:   VR1 → GPIO1
-开关:  SW1 → GPIO11 (bit0), SW2 → GPIO12 (bit1)
-       SW3 → GPIO13 (bit2), SW4 → GPIO14 (bit3)
-按钮:  BTN → GPIO10 (中断, FALLING)
+开关:  SW1 → GPIO13 (bit0), SW2 → GPIO12 (bit1)
+       SW3 → GPIO11 (bit2), SW4 → GPIO10 (bit3)
+按钮:  BTN → GPIO14 (中断, FALLING)
 ```
 
 所有开关和按钮使用 ESP32-S3 内部上拉，闭合时接 GND（低电平有效）。

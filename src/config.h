@@ -18,11 +18,11 @@
 #define PIN_I2S_LRCK      5
 #define PIN_I2S_DIN       6
 #define PIN_ADC_VOLUME    1
-#define PIN_SW1          11
+#define PIN_SW1          13
 #define PIN_SW2          12
-#define PIN_SW3          13
-#define PIN_SW4          14
-#define PIN_BUTTON       10
+#define PIN_SW3          11
+#define PIN_SW4          10
+#define PIN_BUTTON       14
 
 // ======================== 音频参数 ========================
 #define SAMPLE_RATE       44100
@@ -32,8 +32,9 @@
 #define PARAM_QUEUE_SIZE    16
 
 // ======================== 预设开关引脚映射 ========================
-// 四个拨动开关 GPIO11~14, 内部上拉, 闭合=低电平
-// SW1=bit0(1), SW2=bit1(2), SW3=bit2(4), SW4=bit3(8)
+// 四个拨动开关 GPIO10~13, 内部上拉, 闭合=低电平
+// SW1=bit0(1) 在 GPIO13, SW2=bit1(2) 在 GPIO12, SW3=bit2(4) 在 GPIO11, SW4=bit3(8) 在 GPIO10
+// 按钮在 GPIO14, 按钮/开关接线与代码注释以实际硬件为准
 // PIN_SW1~4 已在 "引脚定义" 区段中定义
 
 // ======================== 波形枚举 ========================
