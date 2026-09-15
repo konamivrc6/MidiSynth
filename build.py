@@ -52,7 +52,7 @@ SYNC_MAP = {
     # .ino 区段名 -> [config.h 区段名列表]（支持合并多个 config.h 区段）
     "引脚定义":          ["引脚定义"],
     "音频参数":          ["音频参数"],
-    "MCP23017 开关映射": ["预设开关引脚映射"],
+    "预设开关引脚映射": ["预设开关引脚映射"],
     "消息类型":          ["消息类型"],
     "参数 ID":           ["参数调整命令", "音频任务参数"],
 }
@@ -95,7 +95,7 @@ def dedup_includes(files_lines):
                 result.append(line)
                 continue
             # 库私有头文件始终保留
-            if "EspUsbHost.h" in inc or "<Wire.h>" == inc:
+            if "EspUsbHost.h" in inc:
                 result.append(line)
                 continue
             # 公共头文件：仅第一次出现时保留
