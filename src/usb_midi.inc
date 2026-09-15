@@ -55,8 +55,16 @@ static void onMidiMessage(const EspUsbHostMidiMessage &msg) {
         if (xQueueSend(midiQueue, &m, 0) != pdTRUE) {
             if (debugMode) Serial.println("[USB MIDI] 警告: 队列满, 消息丢弃");
         }
+    } else if (status == 0xB0 && msg.data1 == 64) {
+        // CC64 延音踏板 (Sustain Pedal)
+        m.type  = MSG_CC;
+        m.data1 = 64;
+        m.data2 = msg.data2;
+        if (xQueueSend(midiQueue, &m, 0) != pdTRUE) {
+            if (debugMode) Serial.println("[USB MIDI] 警告: 队列满, 消息丢弃");
+        }
     }
-    // 其他 MIDI 消息 (Control Change, Program Change 等) 忽略
+    // 其他 MIDI 消息 (其他 Control Change, Program Change 等) 忽略
 }
 
 void initUSBMidi() {

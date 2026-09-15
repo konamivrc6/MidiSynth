@@ -49,7 +49,8 @@
 enum MsgType : uint8_t {
     MSG_NOTE_ON     = 0,
     MSG_NOTE_OFF    = 1,
-    MSG_LOAD_PRESET = 2
+    MSG_LOAD_PRESET = 2,
+    MSG_CC          = 3     // Control Change: data1=控制器号, data2=值
 };
 
 struct MidiMsg {

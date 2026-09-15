@@ -21,6 +21,7 @@ Preset currentPreset;
 float  currentFilter1_alpha = 0.0f;
 float  currentFilter2_alpha = 0.0f;
 volatile bool buttonISRflag = false;
+bool sustainPedalDown = false;
 uint32_t sampleCounter = 0;
 
 // ---------- 辅助函数 ----------
@@ -294,6 +295,7 @@ static void noteOn(uint8_t note, uint8_t velocity) {
 
     Voice &v = voices[vi];
     v.active        = true;
+    v.noteOffPending = false;
     v.note          = note;
     v.velocityScale = velScale;
     v.noteOnTime    = sampleCounter;
@@ -306,20 +308,44 @@ static void noteOn(uint8_t note, uint8_t velocity) {
                  currentFilter2_alpha, currentPreset.filter2.intensity);
 }
 
+// ---------- 对单个 Voice 的两个振荡器触发 Release ----------
+static void releaseVoice(int i) {
+    for (int j = 0; j < 2; j++) {
+        Envelope &env = (j == 0) ? voices[i].osc1.env : voices[i].osc2.env;
+        if (env.state == ENV_ATTACK || env.state == ENV_DECAY || env.state == ENV_SUSTAIN) {
+            env.state  = ENV_RELEASE;
+            env.delta  = env.releaseDelta;
+        }
+    }
+}
+
 // ---------- Note Off ----------
 static void noteOff(uint8_t note) {
     for (int i = 0; i < MAX_POLYPHONY; i++) {
         if (!voices[i].active) continue;
         if (voices[i].note != note) continue;
 
-        // 对两个振荡器触发 Release
-        for (int j = 0; j < 2; j++) {
-            Envelope &env = (j == 0) ? voices[i].osc1.env : voices[i].osc2.env;
-            if (env.state == ENV_ATTACK || env.state == ENV_DECAY || env.state == ENV_SUSTAIN) {
-                env.state  = ENV_RELEASE;
-                env.delta  = env.releaseDelta;
-            }
+        // 踏板踩下时挂起, 待踏板松开再释放
+        if (sustainPedalDown) {
+            voices[i].noteOffPending = true;
+            continue;
         }
+
+        releaseVoice(i);
+    }
+}
+
+// ---------- CC64 延音踏板 ----------
+static void setSustain(bool down) {
+    sustainPedalDown = down;
+
+    if (down) return;
+
+    // 松开踏板: 释放所有被挂起的 Voice
+    for (int i = 0; i < MAX_POLYPHONY; i++) {
+        if (!voices[i].active || !voices[i].noteOffPending) continue;
+        releaseVoice(i);
+        voices[i].noteOffPending = false;
     }
 }
 
@@ -433,6 +459,9 @@ void audio_task(void *param) {
                     break;
                 case MSG_LOAD_PRESET:
                     loadPreset(msg.data1);
+                    break;
+                case MSG_CC:
+                    if (msg.data1 == 64) setSustain(msg.data2 >= 64);
                     break;
             }
         }

@@ -51,7 +51,8 @@ enum Waveform : uint8_t {
 enum MsgType : uint8_t {
     MSG_NOTE_ON     = 0,
     MSG_NOTE_OFF    = 1,
-    MSG_LOAD_PRESET = 2
+    MSG_LOAD_PRESET = 2,
+    MSG_CC          = 3     // Control Change: data1=控制器号, data2=值
 };
 
 struct MidiMsg {
@@ -174,6 +175,7 @@ struct OscVoice {
 // ======================== 复音 Voice ========================
 struct Voice {
     bool     active;
+    bool     noteOffPending;    // 已收到 Note Off, 但被延音踏板挂起
     uint8_t  note;
     float    velocityScale;
     OscVoice osc1;
@@ -192,6 +194,7 @@ extern float  currentFilter1_alpha;
 extern float  currentFilter2_alpha;
 
 extern volatile bool buttonISRflag;
+extern bool sustainPedalDown;   // CC64 延音踏板状态
 bool debugMode = true;
 
 extern const Preset presets[16];
