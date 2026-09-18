@@ -50,6 +50,7 @@ MidiSynth.ino          # Arduino 主文件（setup / loop / 串口命令）
 - **双滤波器**：Filter1 高通 + Filter2 低通，一阶 IIR，可独立配置截止频率和强度
 - **12 复音**：带智能 Voice 分配策略（同音符触发 Release → 空闲 → 衰减中 → 最早触发）
 - **调试模式**：`debugMode` 变量控制启动信息、USB MIDI 诊断、性能报告的串口输出，可通过 `debug on/off` 切换，默认开启
+- **延音踏板 (CC64)**：支持 USB MIDI 键盘的 CC64 延音踏板，踏板踩下时 Note Off 会挂起音符、松开后统一释放；也可用串口 `pedal on/off` 模拟
 
 ## 依赖库
 
@@ -154,7 +155,12 @@ hpfc <Hz>   hpfi <0-1>    — 高通截止频率 / 强度
 lpfc <Hz>   lpfi <0-1>    — 低通截止频率 / 强度
 
 --- 其他 ---
+pedal  on/off              — 延音踏板 (CC64)，等同于硬件踏板踩下/松开
 status                     — 打印当前参数
 debug on/off               — 切换调试模式（控制启动日志/性能报告/USB诊断等输出）
 help                       — 显示帮助
 ```
+
+> `pedal off` 只释放「收到过 Note Off 且被挂起」的音符。若正按着某个音没松手就敲 `pedal off`，
+> 该音不会被切断，会一直响到发送 `off <note>`。这是正确的钢琴语义（`noteOffPending` 仅在踏板
+> 踩下期间收到 Note Off 时才置位），不是 bug。

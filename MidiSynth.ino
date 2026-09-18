@@ -102,6 +102,7 @@ extern QueueHandle_t midiQueue;
 extern QueueHandle_t paramQueue;
 extern volatile bool buttonISRflag;
 extern bool debugMode;
+extern bool sustainPedalDown;   // CC64 延音踏板状态 (定义在 src/audio_engine.inc)
 
 extern void audio_task(void *param);
 extern void loadPreset(uint8_t idx);
@@ -136,6 +137,11 @@ static void sendParam(uint8_t id, float val) {
     xQueueSend(paramQueue, &pc, 0);
 }
 
+static void printPedalState() {
+    Serial.printf("延音踏板当前: %s  用法: pedal on / pedal off\n",
+                  sustainPedalDown ? "踩下" : "松开");
+}
+
 static void printHelp() {
     Serial.println(F("\n===== 串口调试命令 ====="));
     Serial.println(F(" note  <0-127> [vel=100]  — 发送 Note On (vel=0 即 Note Off)"));
@@ -156,6 +162,7 @@ static void printHelp() {
     Serial.println(F(" hpfc <Hz>   hpfi <0-1>     — 高通截止频率 / 强度"));
     Serial.println(F(" lpfc <Hz>   lpfi <0-1>     — 低通截止频率 / 强度"));
     Serial.println(F("--- 其他 ---"));
+    Serial.println(F(" pedal  on/off              — 延音踏板 (CC64)"));
     Serial.println(F(" status                     — 打印当前参数"));
     Serial.println(F(" debug on/off               — 切换调试模式"));
     Serial.println(F(" help                       — 显示此帮助"));
@@ -174,6 +181,8 @@ static void parseCommand(char *cmd) {
             printHelp();
         } else if (strcmp(cmd, "status") == 0) {
             printAudioStatus();
+        } else if (strcmp(cmd, "pedal") == 0) {
+            printPedalState();
         } else {
             Serial.printf("未知命令: '%s'  输入 help 查看帮助\n", cmd);
         }
@@ -268,6 +277,27 @@ static void parseCommand(char *cmd) {
             Serial.printf("调试模式当前: %s  用法: debug on / debug off\n",
                           debugMode ? "开启" : "关闭");
         }
+        return;
+    }
+
+    // ---- 延音踏板命令 ----
+    if (strcmp(cmd, "pedal") == 0) {
+        MidiMsg msg;
+        msg.type  = MSG_CC;
+        msg.data1 = 64;                 // CC64 = 延音踏板
+        if (strcmp(arg1, "on") == 0) {
+            msg.data2 = 127;
+        } else if (strcmp(arg1, "off") == 0) {
+            msg.data2 = 0;
+        } else {
+            printPedalState();          // 与 debug 一致: 参数不认识就打印当前状态
+            return;
+        }
+        if (xQueueSend(midiQueue, &msg, 0) != pdTRUE) {
+            Serial.println("延音踏板: 发送失败 (队列已满)");
+            return;
+        }
+        Serial.printf("延音踏板: %s\n", msg.data2 ? "踩下" : "松开");
         return;
     }
 
